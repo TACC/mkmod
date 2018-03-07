@@ -1,0 +1,632 @@
+#!/bin/bash
+#TODO:
+#   document MKMOD_NO_BASHRC
+#   document MKMOD_DEBUG
+#   document help_message
+#   document GROUP GROUP_ACCESS
+
+read -d '' MKMOD_HELP <<EOF
+#
+#
+#  mkmod builds & insert a modulefile in the default directory: $HOME/modulefiles.
+#
+#  $HOME/modulefiles is created if required. Set MODULEFILES_DIR to override default.
+
+#  There are many defaults, and the minimal work a user must do is export 3 variables
+#  and call mkmod.  E.G.
+#
+#        NAME=tau
+#        VER=2.26.2p1
+#        TOP_DIR=$HOME/$NAME
+#      
+#        export NAME VER TOP_DIR
+#
+#        mkmod
+#
+#  NAME is the name of the package, less the version number.
+#  VER is the version of the package, usually found in the package name.
+#  TOP_DIR is the "top level directory" of the package (e.g. $HOME/tau-2.26.2p1)
+#       
+#  USE of environment vars:
+#  NAME VER TOP_DIR and MODULEFILE_DIR (defaults to $HOME/modulefiles) PREFIX(defaults to my_)
+#
+#  NAME_sml   and NAME_cap   (lower-case & upper-case of NAME)   is used throughout.
+#  PREFIX_sml and PREFIX_cap (upper-case & lower-case of PREFIX) defaults to MY_ and my.
+#
+#  mkmod creates the module:     $HOME/modulefiles/$PREFIX_sml$NAME_sml/$VER 
+#           ${PREFIX_sml}_${NAME_cap}_BIN will equal $TOP_DIR/bin (if bin exists)
+#                      PATH will include             $TOP_DIR/bin (if bin exists)
+#
+#  e.g. for NAME=tau         modulefile is at  $HOME/modulefiles/my_tau/2.26.2p1
+#                               MY_TAU_BIN will equal $TOP_DIR/bin 
+#                               PATH will include     $TOP_DIR/bin
+#
+#       Use PREFIX="" if you don't want to use MY_ and my_ prefixes
+#       Set MODULEFILE_DIR if you don't want to use $HOME/modulefiles.
+#
+###################
+#  DEFAULTS|automatics
+#  Checks for these directories:  bin lib libs lib64 include man doc docs share
+#                                 tools bench benchmark data Examples examples
+#     MAKES MY_$NAME_cap_<dir>: dir= BIN|LIB|INC|MAN|DOC|SHR|TOL|BEN|DAT|EXM
+#     Puts bin     path in PATH
+#     Puts library path in LD_LIBRARY_PATH
+#     Puts man     path in MANPATH
+#     Puts python  path in PYTHONPATH
+#
+#     MAKES loaded compiler and loaded MPI prereq's
+#     MAKES NAME_sml the family (User safety first!)
+#
+###################
+#  Set your own values
+#
+#    COMPILER_PREREQ=<compiler/ver>  #e.g. COMPIELR_PREREQ=intel/18.0.0
+#         MPI_PREREQ=<     mpi/ver>  #e.g. COMPIELR_PREREQ=impi/18.0.0
+#
+#    These are all relative to the top-level directory (space separated list)
+#
+#    topdir_path_list=(...)         #e.g.      topdir_path_list=(something/deep/below/bin)
+#    topdir_ldpath_list=(...)       #e.g.    topdir_ldpath_list=(hidden/libraries/lib)
+#    topdir_manpath_list=(...)      #e.g.    topdir_manpath_list(buried/down/under/man)
+#    topdir_pythonpath_list=(...)   #e.g. topdir_pythonpath_list(buried/down/under/python)
+#
+#    Relative to top-level directory  sets ${PREFIX_cap}{NAME_cap}_{BIN|LIB,etc} env vars
+#    topdir_env_list=(...)          #e.g. topdir_env_list=(x86-64/bin x86-64/inc x86-64/lib)
+#
+#    These are for setting full-paths in PATH, LD_LIBRARY_PATH
+
+#    path_list=(...)         #e.g. path_list=(/sbin/whatever)      IMPLEMENTED LATER
+#    ldpath_list=(...)       #e.g. ldpath_list=(/lib64/libfabric)  IMPLEMENTED LATER
+#    manpath_list=(...)      ----  not supported
+#    pythonpath_list(...)    ----  not supported
+#    env_list=(...)          ----  USE ENV1, ENV2, ..., ENV3, see below.
+#    
+###################
+#  Roll your own
+#
+#     If you need environment variables set, do this"
+#
+#     ENV1="MYENVVAR=abc"
+#     ENV2="OTHERENVVAR=123"
+#     ...
+#     export ENV1 ENV2 ...
+#
+#  If you need to include your own LUA LMOD commands, do this:
+#
+#     CUSTOM1="-- This is a comment in LUA"
+#     CUSTOM2="local home \"$HOME\""
+#     ...
+#     export CUSTOM1 CUSTOM2 ...
+#
+#
+###################
+#  LUA command insertion order:
+#    1.) Help Message (see default, or contents of help_message file)
+#    2.) whatis       (none by default, use WHATIS env var)
+#    3.) family       (default $NAME_sml, use FAMILY env var)
+#    4.) prereq's     (default=loaded Compiler/MPI, use COMPILER_PREREQ|MPI_PREREQ)
+#    5.) local topdir (definition for $TOP_DIR)
+#    6.) prepends     (from topdir_path|ldpath|manpath|pythonpath_list) 
+#    7.) prepends     (from full path path|ldpath|manpath|pythonpath_list) 
+#    8.) setenv       (from ENV1, ENV2, ..., ENV30 )
+#    9.) LUA cmds     (from CUSTOM1, CUSTOM2, ..., CUSTOM30)
+#   10.) 
+#
+EOF
+
+USAGE='
+    USAGE: mkmod [-h|--help]
+
+           NAME, VER and TOP_DIR must be defined and exported.
+
+'
+
+  if [[ $1 == "-h" ]] || [[ $1 == "--help" ]]; then
+     echo "$USAGE"
+     echo "$MKMOD_HELP"
+     exit 0
+  fi
+
+
+  if [[ ! "$NAME"      =~ [^[:space:]]  ]] ||
+     [[ ! "$VER""      =~ [^[:space:]]  ]] ||
+     [[ ! "$TOP_DIR""  =~ [^[:space:]]  ]] ;  then
+
+     echo " $USAGE "
+     exit 1 
+  fi
+
+
+#############BEG      CREATE MODULEFILE
+
+  #   IF TOP_DIR doesn't exist -- exit
+
+  echo ""
+  echo "  -> MODULEFILE CREATION:"
+  if [[ ! -d $TOP_DIR ]]; then
+     echo "  -> ERROR: Could not find directory \$TOP_DIR: $TOP_DIR"
+     echo "  ->        Application must be installed in \$TOP_DIR before executing mkmod."
+     exit 2
+  else
+     echo "  -> Found \$TOP_DIR directory: $TOP_DIR"
+  fi
+
+  #                          #Optional Values,  TACC Staff agree on these defaults
+  
+                             # Best to have a prefix so as not to confuse
+                             # with production version
+                             # (e.g. ml intel/18.0.0    gamess #production version)
+                             # (e.g. ml intel/18.0.0 my_gamess #personal   version)
+  
+  #https://stackoverflow.com/questions/3601515/how-to-check-if-a-variable-is-set-in-bash
+                        #PREFIX NOT DEFINE, (does not include "")
+  if [[ -z "${PREFIX+x}" ]]; then
+     PREFIX_sml=my_
+     PREFIX_cap=MY_
+  else                    #USER-DEFINED PREFIX (may include "" -- which means NO prefix)
+     PREFIX_cap=$( echo $PREFIX | tr '[:lower:]' '[:upper:]' )
+     PREFIX_sml=$( echo $PREFIX | tr '[:upper:]' '[:lower:]' )
+  fi
+
+  echo "  -> Prefix for module is \"$PREFIX_sml\". (Set PREFIX=\"\" for none.)"
+
+  
+  if [[ ! "$MODULEFILES_DIR"  =~ [^[:space:]]  ]]; then
+
+     MODULEFILES_DIR=$HOME/modulefiles      # Default place to put modulefiles
+  fi   
+
+  test -w $MODULEFILES_DIR                  # Make sure usr can write to $MODULEFILES_DIR
+  if [[  $? != 0 ]]; then
+     echo "  -> ERROR:  Cannot write in the modulefiles directory: $MODULEFILES_DIR"
+     echo "  ->         This may not be the intended directory, check \$MODULEFILES_DIR."
+     echo "  ->         If it is, please allow write permission to this directory."
+     exit 9
+  fi
+  
+  #                          # Internal Variables are set here
+  
+         NAME_cap=$( echo $NAME | tr '[:lower:]' '[:upper:]' )
+         NAME_sml=$( echo $NAME | tr '[:upper:]' '[:lower:]' )
+  
+       MODULE_DIR=$MODULEFILES_DIR/${PREFIX_sml}$NAME_sml
+           MODULE=${VER}.lua
+  
+           BASHRC=$HOME/.bashrc
+  
+  #                          # Preparations here
+
+  #   IF MODULE_DIR is accessible (mkdir -p)  -- exit otherwise
+  
+       mkdir -p $MODULE_DIR    #no-op if already exists and writable
+       if [[ ! $? ]]; then
+          echo "  -> ERROR: Could not use \$MODULE_DIR: $MODULE_DIR"
+          echo "  ->        Please correct and rerun $0."
+          exit 3
+       else
+          echo "  -> Able to access|create \$MODULE_DIR: $MODULE_DIR"
+       fi
+
+  #                          # Specialized Variables used in the modulefile
+  #                          # Give values if not defined by user
+       [[ ! "$HELP_MESSAGE"  =~ [^[:space:]]  ]] &&  \
+                                HELP_MESSAGE="local help_message = [[ module load ${MODULE_prefix}$NAME_sml ]]"
+       [[ ! "$FAMILY"        =~ [^[:space:]]  ]] &&  FAMILY=$NAME_sml
+  
+  #                          # Defaults: set env VARS: <prefix><NAME>_DIR and <prefix><NAME>_BIN
+  #                          # Defaults: add bin directory to PATH
+
+  # topdir_env_list
+  
+       if [[ ! "$topdir_env_list"  =~ [^[:space:]] ]] ; then
+         #topdir_env_default=( bin lib libs inc man doc docs )
+          topdir_env_default=( bin lib libs lib64 include man doc docs share tools bench benchmark data Examples examples )
+
+          topdir_env_list=(dir)   # This must exist!  dir mean "topdir"
+          for dir in ${topdir_env_default[@]}; do
+            [[ -d $TOP_DIR/$dir ]] && topdir_env_list+=($dir)
+          done
+
+          echo "  -> Autocheck found these directories in \$TOP_DIR: ${topdir_env_list[@]}"
+          echo "  ->           Will create ${PREFIX_cap}${NAME_cap}_<DIR> environment vars for these."
+       fi
+
+ 
+  # topdir_path_list
+
+       if [[ ! "$topdir_path_list" =~ [^[:space:]]  ]]; then
+          if [[ -d $TOP_DIR/bin ]]; then
+             topdir_path_list=(bin)
+             echo "  -> Autocheck found bin in \$TOP_DIR."
+             echo "  ->           Will include in PATH."
+          fi
+       fi
+
+
+  # topdir_ldpath_list
+
+       if [[ ! "$topdir_ldpath_list" =~ [^[:space:]]  ]]; then
+          [[ -d $TOP_DIR/lib   ]] && topdir_ldpath_list=(lib)
+          [[ -d $TOP_DIR/libs  ]] && topdir_ldpath_list=(libs)
+          [[ -d $TOP_DIR/lib64 ]] && topdir_ldpath_list=(lib64)
+          if [[ ${#topdir_ldpath_list[@]} > 0 ]] ;then
+             echo "  -> Autocheck found ${topdir_ldpath_list[@]} in \$TOP_DIR."
+             echo "  ->           Will include in LD_LIBRARY_PATH."
+          fi
+       fi
+
+
+  # topdir_manpath_list
+
+       if [[ ! "$topdir_manpath_list" =~ [^[:space:]]  ]]; then
+          if [[ -d $TOP_DIR/man ]]; then
+             topdir_manpath_list=(man)
+             echo "  -> Autocheck found man in \$TOP_DIR."
+             echo "  ->           Will include in MANPATH."
+          fi
+       fi
+
+  
+  # topdir_pythonpath_list
+
+       if [[ ! "$topdir_manpath_list" =~ [^[:space:]]  ]]; then
+          if [[ -d $TOP_DIR/python ]]; then
+             topdir_pythonpath_list=(python)
+             echo "  -> Autocheck found python in \$TOP_DIR."
+             echo "  ->           Will include in PYTHONPATH."
+          fi
+       fi
+
+  
+       echo "  -> Modulefile  ${MODULE_prefix}$NAME_sml/$MODULE  will go in $MODULEFILES_DIR" 
+
+         
+  #  END of Modulefile Prep
+  
+  module=()
+  
+  
+  module+=( "help(help_message,\"\\n\")" )
+
+  if [[ "$WHATIS" =~ [^[:space:]]  ]]; then
+     echo "  -> Including \"whatis\" information in the modulefile."
+     module+=( "--" )
+     IFS='@' read -r -a text <<< "$WHATIS"
+     for text in "${text[@]}"; do
+                         #trim text
+        shopt -s extglob
+        a="${text##*( )}"; trimmed_text="${a%%*( )}"
+        shopt -u extglob
+
+        module+=( "whatis(\"$trimmed_text\")" )
+
+     done
+  fi
+
+  module+=( "--" )
+  
+  [[ "$FAMILY" =~ [^[:space:]]  ]]&&  module+=( "family(\"$FAMILY\")" )
+
+
+### COMPILER PREREQ
+  comp_mpi_prereq=()
+
+  if [[ ! "$COMPILER_PREREQ" =~ [^[:space:]]  ]]; then
+
+    if [[ "$TACC_FAMILY_COMPILER_VERSION" =~ [^[:space:]] ]] && [[ "$TACC_FAMILY_COMPILER" =~ [^[:space:]] ]]; then
+      COMPILER_PREREQ=$TACC_FAMILY_COMPILER/$TACC_FAMILY_COMPILER_VERSION
+      echo "  -> Setting COMPILER PREREQ to $TACC_FAMILY_COMPILER/$TACC_FAMILY_COMPILER_VERSION"
+      comp_mpi_prereq=( "$COMPILER_PREREQ" )
+     #module+=( "prereq(\"$COMPILER_PREREQ\")" )
+    fi
+
+  else  # COMPILER_PREREQ set
+
+    if [[ "$TACC_FAMILY_COMPILER_VERSION" =~ [^[:space:]] ]] && [[ "$TACC_FAMILY_COMPILER" =~ [^[:space:]] ]]; then
+        if [[ $TACC_FAMILY_COMPILER/$TACC_FAMILY_COMPILER_VERSION != $COMPILER_PREREQ ]]; then
+          echo ""
+          echo "  -> WARNING:"
+          echo "  ->         COMPILER PREREQ=$COMPILER_PREREQ"
+          echo "  ->   BUT   TACC_FAMILY_COMPILER/TACC_FAMILY_COMPILER_VERSION=$TACC_FAMILY_COMPILER/$TACC_FAMILY_COMPILER_VERSION"
+          echo ""
+        fi
+    fi
+   #module+=( "prereq(\"$COMPILER_PREREQ\")" )
+   comp_mpi_prereq="$COMPILER_PREREQ"
+  fi
+
+
+### MPI PREREQ
+  if [[ ! "$MPI_PREREQ" =~ [^[:space:]]  ]]; then
+
+    if [[ "$TACC_FAMILY_MPI_VERSION" =~ [^[:space:]] ]] && [[ "$TACC_FAMILY_MPI" =~ [^[:space:]] ]]; then
+      MPI_PREREQ=$TACC_FAMILY_MPI/$TACC_FAMILY_MPI_VERSION
+      echo "  -> Setting MPI PREREQ to $TACC_FAMILY_MPI/$TACC_FAMILY_MPI_VERSION"
+      comp_mpi_prereq+=( "$MPI_PREREQ" )
+      #module+=( "prereq(\"$MPI_PREREQ\")" )
+    fi
+
+  else  # MPI_PREREQ set
+
+    if [[ "$TACC_FAMILY_MPI_VERSION" =~ [^[:space:]] ]] && [[ "$TACC_FAMILY_MPI" =~ [^[:space:]] ]]; then
+        if [[ $TACC_FAMILY_MPI/$TACC_FAMILY_MPI_VERSION != $MPI_PREREQ ]]; then
+          echo "" 
+          echo "  -> WARNING:"
+          echo "  ->         MPI PREREQ=$MPI_PREREQ"
+          echo "  ->   BUT   TACC_FAMILY_MPI/TACC_FAMILY_MPI_VERSION=$TACC_FAMILY_MPI/$TACC_FAMILY_MPI_VERSION"
+          echo ""
+        fi
+    fi
+    comp_mpi_prereq+=( "$MPI_PREREQ" )
+    #module+=( "prereq(\"$MPI_PREREQ\")" )
+  fi
+
+
+  if [[ "$comp_mpi_prereq" =~ [^[:space:]]  ]]; then
+    list=""; comma=""
+    for prereq in "${comp_mpi_prereq[@]}"; do
+      list="${list}${comma} \"$prereq\""
+      comma=","
+    done
+
+    module+=( "prereq($list)" )
+
+  fi
+
+  module+=( "--" )
+
+  module+=("     local topdir   = \"$TOP_DIR\"")
+  module+=( "--" )
+  
+  for dir in ${topdir_env_list[@]}; do
+     DIR=$( echo $(basename $dir) | tr '[:lower:]' '[:upper:]' )
+     #TACC Convention (no S)
+     [[ $DIR == "DOCS"     ]] && DIR=DOC; [[ $DIR == "SHARE"      ]] && DIR=SHR
+     [[ $DIR == "BENCH"    ]] && DIR=BEN; [[ $DIR == "BENCHMARK"  ]] && DIR=BEN
+     [[ $DIR == "TOOLS"    ]] && DIR=TOL; 
+     [[ $DIR == "INCLUDE"  ]] && DIR=INC; 
+     [[ $DIR == "DATA"     ]] && DIR=DAT; 
+     [[ $DIR == "LIBS"     ]] && DIR=LIB; [[ $DIR == "LIB64"      ]] && DIR=LIB
+     [[ $DIR == "Examples" ]] && DIR=EXM; [[ $DIR == "examples"   ]] && DIR=EXM
+     if [[ ! $dir =~ dir   ]]; then
+        module+=( "setenv(\"${PREFIX_cap}${NAME_cap}_${DIR}\", pathJoin(topdir,\"$dir\"))" )
+     else
+        module+=( "setenv(\"${PREFIX_cap}${NAME_cap}_${DIR}\", topdir)" )
+     fi
+  done
+     module+=( "--" )
+  
+                             # If no topdir bin directory exist, put topdir in PATH
+  if [[ ! "$topdir_path_list" =~ [^[:space:]]  ]]; then  
+     module+=( "prepend_path(\"PATH\", topdir)" )
+     module+=( " " )
+  fi
+  
+  for dir in ${topdir_path_list[@]}; do
+     module+=( "prepend_path(\"PATH\", pathJoin(topdir,\"$dir\"))" )
+  done
+  
+  for dir in ${topdir_ldpath_list[@]}; do
+     module+=( "prepend_path(\"LD_LIBRARY_PATH\", pathJoin(topdir,\"$dir\"))" )
+  done
+  
+  for dir in ${topdir_manpath_list[@]}; do
+     module+=( "prepend_path(\"MANPATH\", pathJoin(topdir,\"$dir\"))" )
+  done
+
+  for dir in ${topdir_pythonpath_list[@]}; do
+     module+=( "prepend_path(\"PYTHONPATH\", pathJoin(topdir,\"$dir\"))" )
+  done
+
+     module+=( " " )
+  
+  
+  for dir in ${path_list[@]}; do
+     module+=( "prepend_path(\"PATH\",\"$dir\")" )
+  done
+  
+  for dir in ${ldpath_list[@]}; do
+     module+=( "prepend_path(\"LD_LIBRARY_PATH\",\"$dir\")" )
+  done
+  for dir in ${manpath_list[@]}; do
+     module+=( "prepend_path(\"MANPATH\",\"$dir\")" )
+  done
+  for dir in ${pythonpath_list[@]}; do
+     module+=( "prepend_path(\"PYTHONPATH\",\"$dir\")" )
+  done
+  
+  
+  if [[ "$MKMOD_DEBUG"  =~ [^[:space:]]  ]]; then
+       FILE=/tmp/${USER}_${MODULE}_$$
+  else
+       FILE=$MODULE_DIR/$MODULE
+  fi
+
+  echo "  -> Creating $MODULE.  Full path = $MODULE_DIR/$MODULE"
+
+
+###### NOW PUT IT IN THE FILE
+ echo HHHHHHHHHHHHHHHHHHHHHHHHH $FILE 
+  echo ""                 > $FILE
+  echo "$HELP_MESSAGE"   >> $FILE
+  
+  for i in "${module[@]}"; do
+     echo $i             >> $FILE
+  done
+  echo ""                >> $FILE
+  
+ #if [[ "$ENV_KEY" =~ [^[:space:]]  ]]; then
+ #   env_key=($ENV_KEY)
+ #   env_val=($ENV_VAL)
+ #   for i in `seq 0 $((${#env_key[@]}-1))`; do
+ #      echo "setenv( \"${env_key[$i]}\",  \"${env_val[$i]}\" )" >> $FILE
+ #   done
+   #fi
+  
+    for i in `seq 1 30`; do
+      env=$( eval echo \"\$ENV$i\" )
+      if [[  "$env"  =~ [^[:space:]] ]]; then
+         IFS='= ' read -r key val <<< "$env"
+                          echo "setenv( \"${key}\",  \"${val}\" )" >> $FILE
+      fi
+    done
+  
+    for i in `seq 1 30`; do
+      custom=$( eval echo \"\$CUSTOM$i\" )
+      [[  "$custom"  =~ [^[:space:]] ]] &&          echo "$custom" >> $FILE
+    done
+  
+    echo "  -> Finished creating and installing the modulefile for $NAME_cap."
+    echo ""
+  
+    if [[ "$MKMOD_DEBUG"  =~ [^[:space:]]  ]]; then
+         echo "  -> DEUG MODE (just printing expected modulefile"
+         cat /tmp/${USER}_${MODULE}_$$
+         rm  /tmp/${USER}_${MODULE}_$$
+    fi
+
+#############END      CREATE MODULEFILE
+  
+  
+#############BEG      GROUP ACCESS REQUEST
+  
+  if [[ $GROUP_ACCESS =~ [^[:space:]] ]]; then
+  
+     echo ""
+     echo "  -> GROUP_ACCESS variable is set.  Will allow group access to modulefile."
+     echo ""
+   
+                          # Determine which group to use
+     if [[ ! $GROUP =~ [^[:space:]] ]]; then
+  
+                          # Use the primary group
+        GROUP=`id -gn`
+        group_type="primary"
+        do_chgrp=no
+     else
+                          # User supplied Group, make sure all it is valid
+        touch /tmp/imod_test.$$
+        chgrp_out=`chgrp $GROUP /tmp/imod_test.$$ 2>&1`
+        if [[ $? != 0 ]]; then
+           do_chgrp=no
+           echo "  -> WARNING: test for changing group to $GROUP failed."
+           echo "  ->          CHANGE to $GROUP will NOT be performed."
+           echo "  ->          chgrp output: $chgrp_out"
+           #USUAL ERROR: chgrp: changing group of ‘/tmp/imod_test....’: Operation not permitted
+        else
+           echo "  -> Test for changing group to $GROUP passed."
+           do_chgrp=yes
+        fi
+        rm -rf  /tmp/imod_test.$$
+  
+        do_chgrp=yes
+        group_type="user-supplied (in GROUP variable)"
+     fi
+   
+   
+     getent_out=`getent group $GROUP`
+     group_users=`echo $getent_out | sed 's/.*://'`
+     echo "  -> Processing GROUP access for $group_type group $GROUP"
+     echo "  -> Members of the group are: $group_users"
+     echo ""
+   
+     do_chmod=yes
+     if [[ $MODULEFILES_DIR =~  $STOCKYARD ]]; then
+        CHANGE_DIRS=(  $STOCKYARD )
+        CHANGE_DIRS+=( $WORK )
+        BASE_DIR=$WORK
+     elif [[ $MODULEFILES_DIR =~  $HOME ]]; then
+        CHANGE_DIRS+=( $HOME )
+        BASE_DIR=$HOME
+     else
+        echo "  -> GROUP ACCESS to a directory outside of \$HOME or \$WORK is not allowed."
+        echo "  ->     Your modulefiles path is $MODULEFILES_DIR"
+        echo "  ->     Group permissions will not be changed to provide group access."
+        do_chmod=no
+     fi
+  
+     if [[ $do_chmod == yes ]]; then
+        RELATIVE_PATH=`echo $MODULEFILES_DIR | sed 's@'$BASE_DIR'/@@'`
+        
+        IFS='/' read -r -a dirs <<< "$RELATIVE_PATH"
+     
+        DIR=$BASE_DIR
+        for dir in ${dirs[@]}; do
+            DIR=$DIR/$dir
+            CHANGE_DIRS+=( $DIR )
+        done
+     
+        CHANGE_DIRS+=( $MODULEFILES_DIR/$MODULE_DIR )
+        CHANGE_DIRS+=( $MODULEFILES_DIR/$MODULE_DIR/$MODULE )
+  
+                         #Now process all directories in the array.
+        if [[ $do_chgrp == yes ]]; then
+            echo "  -> chmod g+rX  and chgrp $GROUP  executed on: "
+        else
+            echo "  -> chmod g+rX  executed on: "
+        fi
+        for change_dir in ${CHANGE_DIRS[@]}; do
+          echo "  ->    $change_dir"
+         $CMD chmod g+rX $change_dir
+          if [[ $do_chgrp == yes ]]; then
+             $CMD chgrp $GROUP $change_dir
+          fi
+        done
+  
+     fi
+     echo ""
+  fi
+#############END      GROUP ACCESS REQUEST
+
+
+#############BEG      MODULEFILES  ACCESS
+
+if [[ ! "$MKMOD_DEBUG"  =~ [^[:space:]]  ]] && [[ ! "$MKMOD_NO_BASHRC"  =~ [^[:space:]]  ]] ; then
+  echo "  -> MODULEFILES DIRECTORY ACCESS (USE):"
+  echo "  -> Checking for \"module use $MODULEFILES_DIR\" in \$HOME/.bashrc."
+
+   grep -e  "$MODULEFILES_DIR #GMS_KEEP_THIS_COMMENT" $BASHRC >/dev/null
+
+   if [[ $? == 0 ]]; then
+      echo "  -> Note: \"module use $MODULEFILES_DIR\" is already in \$HOME/.bashrc."
+   else
+      echo "  -> Note: Including \"module use $MODULEFILES_DIR\"  in \$HOME/.bashrc."
+
+      grep -e '^\s*export __BASHRC_SOURCED__=1' $BASHRC > /dev/null
+
+      if [[ $? == 0 ]]; then
+
+   #                                            Insert Module Use after BASHRC_SOURCES if it exists
+   #                                            include 4 spaces in front
+         sed -i '/export __BASHRC_SOURCED__=1/a'"\ \ \ \ module use $MODULEFILES_DIR #GMS_KEEP_THIS_COMMENT" $BASHRC
+
+      else
+
+   #                                            Otherwise, put the module use at the end
+   #                                            Make sure it is only sourced (used) once at login
+   #                                            and not in batch
+
+         readarray message <<-EOF
+           :
+           :###############
+           :# SECTION GAMESS
+           :if [ -z "\$__GMS_BASHRC_SOURCED__" -a "$ENVIRONMENT" != BATCH ]; then
+           :    export   __GMS_BASHRC_SOURCED__=1
+           :    module use $MODULEFILES_DIR #GMS_KEEP_THIS_COMMENT
+           :fi
+	EOF
+        #Above EOF must have a tab before it, and nothing else (NO SPACES, just a tab)!
+
+                            #lop off spaces up to and including ":", and print
+         shopt -s extglob
+         printf '%s' "${message[@]#+( ):}" >> $BASHRC
+         shopt -u extglob
+      fi
+
+   fi
+   echo "  -> Finished with \"module use\" setup in \$HOME/.bashrc."
+   echo ""
+fi
+#############END      MODULEFILES  ACCESS
+
+#}
