@@ -2,7 +2,7 @@
 
 MKMOD_VERSION=0.9b
 
-MKMOD_HELP=$( sed 's/^#//' <<'EOF'
+MKMOD_HELP=$(sed 's/^#//' <<'EOF'
 #  mkmod builds & inserts a modulefile in $HOME/modulefiles.
 #
 #  The minimal work a user must do is export 3 variables and call mkmod.
@@ -47,17 +47,15 @@ MKMOD_HELP=$( sed 's/^#//' <<'EOF'
 #       1.) MODULEFILES_DIR          (default= $HOME/modulefiles )
 #       2.) GROUP_ACCESS             (if set, allow primary group access)
 #       3.) GROUP                    (required for non-primary group)
-#
 #       4.) COMPILER_PREREQ          (default= loaded compiler)
 #       5.)      MPI_PREREQ          (default= loaded MPI)
-#       6.) PREREQ                   (set to "none" avoid setting compiler/mpi prereqs.)
-#
-#       7.) PREFIX                   (default= MY_|my_)
-#       8.) FAMILY                   (default= NAME, set to "" for no family)
-#       9.) HELP_FILE                (default= ./module_help_message, use when
+#       6.) PREFIX                   (default= MY_|my_)
+#       7.) FAMILY                   (default= NAME, set to "" for no family)
+#       8.) HELP_FILE                (default= ./module_help_message, use when
 #                                              location is now PWD.)
-#      10.) USE_BASHRC               (if "none", no .bashrc check-- e.g. for RPMS)
-#      11.) MKMOD_DEBUG              (if set, modulefile goes to std out)
+#  
+#       9.) USE_BASHRC               (if "none", no .bashrc check-- e.g. for RPMS)
+#      10.) MKMOD_DEBUG              (if set, modulefile goes to std out)
 #  
 #       PATHS -- RELATIVE to TOPDIR
 #  
@@ -121,14 +119,14 @@ USAGE='
   fi
 
   if [[ $1 == "-v" ]] || [[ $1 == "--version" ]]; then
-     echo "VERSION=$MKMOD_VERSION""
+     echo "VERSION=$MKMOD_VERSION"
      exit 0
   fi
 
 
-  if [[ ! "$NAME"      =~ [^[:space:]]  ]] ||
-     [[ ! "$VER""      =~ [^[:space:]]  ]] ||
-     [[ ! "$TOPDIR""  =~ [^[:space:]]  ]] ;  then
+  if [[ ! "$NAME"    =~ [^[:space:]]  ]] ||
+     [[ ! "$VER"     =~ [^[:space:]]  ]] ||
+     [[ ! "$TOPDIR"  =~ [^[:space:]]  ]] ;  then
 
      echo " $USAGE "
      exit 1 
@@ -415,6 +413,7 @@ USAGE='
  ## Compiler prereq
   comp_mpi_prereq=()
 
+ if [[ ! "$PREREQ" =~ none  ]]; then
   if [[ ! "$COMPILER_PREREQ" =~ [^[:space:]]  ]]; then
 
     if [[ "$LMOD_FAMILY_COMPILER_VERSION" =~ [^[:space:]] ]] && [[ "$LMOD_FAMILY_COMPILER" =~ [^[:space:]] ]]; then
@@ -465,7 +464,6 @@ USAGE='
     #module+=( "prereq(\"$MPI_PREREQ\")" )
   fi
 
-
   if [[ "$comp_mpi_prereq" =~ [^[:space:]]  ]]; then
     list=""; comma=""
     for prereq in "${comp_mpi_prereq[@]}"; do
@@ -476,6 +474,8 @@ USAGE='
     module+=( "prereq($list)" )
 
   fi
+
+ fi  #end PREREQ=none
 
  ## TOPDIR (as a local variable)
 
