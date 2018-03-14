@@ -22,10 +22,6 @@ INSTRUCTIONS
                 export    VER=...
                 export TOPDIR=...
 
-                export PREREQ=none   #we do this to avoid compiler/mpi
-                                     #prerequisite--since this is a
-                                     #compiler/mpi agnostic tool
-
   2.) Execute:  mkmod
 
 
@@ -39,6 +35,9 @@ INSTRUCTIONS
         export NAME=mkmod
         export VER=0.9b                #execute bin/mkmod -v for current ver.
         export TOPDIR=$(dirname `pwd`) #TOPDIR=directory above this.
+        export PREREQ=none             #we do this to avoid compiler/mpi
+                                       #prerequisite--since this is a
+                                       #compiler/mpi agnostic tool
      
         ../bin/mkmod                   #mkmod location relative to this directory
 

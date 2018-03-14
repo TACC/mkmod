@@ -47,15 +47,17 @@ MKMOD_HELP=$( sed 's/^#//' <<'EOF'
 #       1.) MODULEFILES_DIR          (default= $HOME/modulefiles )
 #       2.) GROUP_ACCESS             (if set, allow primary group access)
 #       3.) GROUP                    (required for non-primary group)
+#
 #       4.) COMPILER_PREREQ          (default= loaded compiler)
 #       5.)      MPI_PREREQ          (default= loaded MPI)
-#       6.) PREFIX                   (default= MY_|my_)
-#       7.) FAMILY                   (default= NAME, set to "" for no family)
-#       8.) HELP_FILE                (default= ./module_help_message, use when
+#       6.) PREREQ                   (set to "none" avoid setting compiler/mpi prereqs.)
+#
+#       7.) PREFIX                   (default= MY_|my_)
+#       8.) FAMILY                   (default= NAME, set to "" for no family)
+#       9.) HELP_FILE                (default= ./module_help_message, use when
 #                                              location is now PWD.)
-#  
-#       9.) USE_BASHRC               (if "none", no .bashrc check-- e.g. for RPMS)
-#      10.) MKMOD_DEBUG              (if set, modulefile goes to std out)
+#      10.) USE_BASHRC               (if "none", no .bashrc check-- e.g. for RPMS)
+#      11.) MKMOD_DEBUG              (if set, modulefile goes to std out)
 #  
 #       PATHS -- RELATIVE to TOPDIR
 #  
