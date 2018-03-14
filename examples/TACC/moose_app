@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# FEATURE: Insert user-defined ENV VAR for APP directory  (ENV1)
+#          Insert whatis module statements                (WHATIS)
+
+    NAME=moose
+    VER=git.20170622
+    TOPDIR=/home1/apps/gcc7_1/impi17_0/moose/git.20170622
+    export NAME VER TOPDIR
+
+     export ENV1="MOOSE_DIR=$TOPDIR"
+     export WHATIS="
+       Name: Moose
+     @ Version: $VER
+     @ Version-notes: external packages installed: 
+     @ Category: library, mathematics
+     @ URL: http://www-unix.mcs.anl.gov/moose/moose-as/
+     @ Description: Portable Extendible Toolkit for Scientific Computing, Numerical library for sparse linear algebra  
+"
+
+    mkmod

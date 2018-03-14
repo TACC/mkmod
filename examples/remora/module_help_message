@@ -1,0 +1,57 @@
+
+-------------------------- Module Specific Help for remora/$VER  --------------------------
+REMORA is an easy to use profiler that allows users to get information
+regarding their jobs. The information collected by the tool includes:
+    - Memory usage
+    - CPU usage
+    - I/O load (Lustre,DVS)
+    - NUMA memory
+    - Network topology
+
+To use the tool, simply modify your batch script and include 'remora' before
+your executable or ibrun.
+
+Examples:
+...
+#SBATCH -N 2
+#SBATCH -n 16
+#SBATCH -A my_project
+
+remora ibrun my_parallel_program [arguments]
+
+---------------------------------------
+...
+#SBATCH -N 1
+#SBATCH -n 1
+#SBATCH -A my_project
+remora ./my_program [arguments]
+
+---------------------------------------
+
+REMORA will create a set of folders with a number of files that contain
+the values for the parameters previously introduced.
+
+REMORA will also create a set of HTML files with the results plotted for
+an easier analysis. There's a summary HTML file in the main results folder
+that contains links to the different results. Transfer the results to your
+own machine to visualize them.
+
+The following environment variables control the behaviour of the tool:
+
+  - REMORA_PERIOD  - How often memory usage is checked. Default
+                     is 10 seconds.
+  - REMORA_VERBOSE - Verbose mode will save all information to
+                     a file. Default is 0 (off).
+  - REMORA_MODE    - FULL for all stats, BASIC for memory and cpu only.
+                     Default if FULL.
+  - REMORA_TMPDIR  - Directory for intermediate files. Default is the
+                     remora output directory.
+
+The remora module also defines the following environment variables:
+REMORA_DIR, REMORA_LIB, REMORA_INC and REMORA_BIN for the location
+of the REMORA distribution, libraries, include files, and tools respectively.
+
+To generate a summary report after a crash use:
+
+remora_post_crash <JOBID>
+

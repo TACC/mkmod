@@ -1,0 +1,37 @@
+#!/bin/bash
+#
+# FEATURES:
+#           Insert user-defined help message text for compiling/loading (HELP_MESSAGE)
+#           Insert whatis strings  (WHATIS)
+
+#********* NOTE  mic system is no longer at TACC  ******
+#********* ALL the complicated rpm logic is not needed *****
+
+DIR=/opt/apps/intel18/impi18_0/phdf5/1.8.16/x86_64
+
+            NAME=phdf5 
+             VER=1.8.16
+          TOPDIR=$DIR
+
+   export NAME VER TOPDIR PREFIX
+
+  WHATIS="    Name: HDF5 "
+  WHATIS+=" @ Version: $VER"
+  WHATIS+=" @ Category library, runtime support" 
+  WHATIS+=" @ Keywords: I/O, Library "
+  WHATIS+=" @ URL: http://www.hdfgroup.org/HDF5/"
+  WHATIS+=" @ Description: General purpose library and file format for storing scientific data (Parallel Version)."
+  export WHATIS
+
+  export HELP_MESSAGE='
+   Compile the source code with the option:
+
+       -I$TACC_HDF5_INC
+
+   and add the following options to the link step:
+
+       -Wl,-rpath,$TACC_HDF5_LIB -L$TACC_HDF5_LIB -lhdf5 -lz 
+  ' 
+ #export AUTO_HELP=none
+
+mkmod

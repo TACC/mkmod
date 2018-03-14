@@ -1,0 +1,50 @@
+
+         git clone https://github.com/milfeld/mkmod
+
+  mkmod automatically creates a module in $HOME/modulefiles:
+
+         * for Users and Developers who install their own packages.
+         * for staff who provide scripts for users to
+                 build their own packages (e.g. you hand them
+                 a mk_package script which includes mkmod)
+         * for the LMOD tutorial lab of tinyurl.com/chcp-2017-tools
+         * can be used with rpms
+               (that don't require rpm logic and %{} variables)
+
+INSTRUCTIONS
+
+  The minimal work a user must do is export 3 variables and call mkmod.
+
+  1.) Define & Export         NAME, VER,   and   TOPDIR
+                     (package name, version, and top-level directory)
+
+                export   NAME=...
+                export    VER=...
+                export TOPDIR=...
+
+
+  2.) Execute:  mkmod
+
+
+
+
+  ------------------------------
+
+
+  Build your own module for mkmod
+
+        export NAME=mkmod
+        export VER=0.9b                #execute bin/mkmod -v for current ver.
+        export TOPDIR=$(dirname `pwd`) #TOPDIR=directory above this.
+     
+        ../bin/mkmod                   #mkmod location relative to this directory
+
+
+        #logout, then login
+
+        module load my_mkmod           #install directory is in your path
+
+        module help my_mkmod           # See examples for features.
+                                       # Use export PREFIX="" for no "my_"
+
+      

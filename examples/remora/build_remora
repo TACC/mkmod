@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# Real World Example with mkmod
+
+# Features:  uses module help-message file (provided)
+#            NOTE:  it uses the $VAR variable inside module_help_message
+
+# Get the remora performance monitor from TACC:
+
+         git clone https://github.com/tacc/remora
+
+# Build
+         cd remora
+         ./install.sh
+
+#   Get the Version number, inside install.sh look for VERSION=x.y.z or just execute
+#   this grep and replace with the correct value below.
+grep -Po 'VERSION=\K[0-9.]*' install.sh
+
+         export VER=1.8.1
+         export NAME=remora
+         export TOPDIR=`pwd`
+
+         #export PREFIX=""
+         export HELP_FILE=../module_help_message
+
+         mkmod
