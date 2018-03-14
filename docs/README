@@ -22,6 +22,9 @@ INSTRUCTIONS
                 export    VER=...
                 export TOPDIR=...
 
+                export PREREQ=none   #we do this to avoid compiler/mpi
+                                     #prerequisite--since this is a
+                                     #compiler/mpi agnostic tool
 
   2.) Execute:  mkmod
 
