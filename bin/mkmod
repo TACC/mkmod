@@ -179,14 +179,20 @@ USAGE='
      MODULEFILES_DIR=$HOME/modulefiles      # Default place to put modulefiles
   fi   
 
-  test -w $MODULEFILES_DIR                  # Make sure usr can write to $MODULEFILES_DIR
+  DIR_ABOVE=$(dirname $MODULEFILES_DIR) # Make sure usr can write to $MODULEFILES_DIR/..
+  test -w $DIR_ABOVE 
   if [[  $? != 0 ]]; then
-     echo "  -> ERROR:  Cannot write in the modulefiles directory: $MODULEFILES_DIR"
-     echo "  ->         This may not be the intended directory, check \$MODULEFILES_DIR."
-     echo "  ->         If it is, please allow write permission to this directory."
+     echo "  -> ERROR:  Cannot write into directory ABOVE: $MODULEFILES_DIR"
+     echo "  ->         Is the intended modulesfile directory, $MODULEFILES_DIR?"
+     echo "  ->         If it is, please allow write permission to $DIR_ABOVE."
      exit 9
   fi
-  
+  test -w $MODULESFILES_DIR                 # Make sure usr can write to $MODULEFILES_DIR
+  if [[  $? != 0 ]]; then
+     echo "  -> ERROR:  Cannot write into directory $MODULEFILES_DIR."
+     exit 9
+  fi
+
   #                          # Internal Variables are set here
   
          NAME_cap=$( echo $NAME | tr '[:lower:]' '[:upper:]' )
@@ -847,6 +853,11 @@ if [[ ! "$MKMOD_DEBUG"  =~ [^[:space:]]  ]] && [[ ! "$USE_IN_BASHRC"  =~ none  ]
    else
       chx4=""
       echo "  -> Note: Including \"module use $MODULEFILES_DIR\"  in \$HOME/.bashrc."
+      echo "  -> ********************************************************************"
+      echo ""
+      echo "  -> DON'T FORGET TO LOGOUT and LOGIN to activate "module use " in .bashrc"
+      echo ""
+      echo "  -> ********************************************************************"
       echo "  ->       Making backup \$HOME/.bashrc_mkmod_bu.$$."
       cp $HOME/.bashrc               $HOME/.bashrc_mkmod_bu.$$
 
