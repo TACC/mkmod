@@ -274,6 +274,10 @@ USAGE='
 
           echo "  -> Autocheck found these directories in \$TOPDIR: ${topdir_env_list[@]}"
           echo "  ->           Will create ${PREFIX_cap}${NAME_cap}_<DIR> environment vars for these."
+       else
+          topdir_env_string=$topdir_env_list
+          topdir_env_list=()
+          IFS=' ' read -r -a topdir_env_list <<<$topdir_env_string
        fi
 
  
@@ -306,6 +310,10 @@ USAGE='
              echo "  -> Autocheck found ${topdir_ldpath_list[@]} in \$TOPDIR."
              echo "  ->           Will include in LD_LIBRARY_PATH."
           fi
+       else
+          topdir_ldpathstring=$topdir_ldpathlist
+          topdir_ldpathlist=()
+          IFS=' ' read -r -a topdir_ldpathlist <<<$topdir_ldpathstring
        fi
 
 
@@ -317,17 +325,25 @@ USAGE='
              echo "  -> Autocheck found man in \$TOPDIR."
              echo "  ->           Will include in MANPATH."
           fi
+       else
+          topdir_manpath_string=$topdir_manpath_list
+          topdir_manpath_list=()
+          IFS=' ' read -r -a topdir_manpath_list <<<$topdir_manpath_string
        fi
 
   
   # topdir_pythonpath_list
 
-       if [[ ! "$topdir_manpath_list" =~ [^[:space:]]  ]]; then
+       if [[ ! "$topdir_pythonpath_list" =~ [^[:space:]]  ]]; then
           if [[ -d $TOPDIR/python ]]; then
              topdir_pythonpath_list=(python)
              echo "  -> Autocheck found python in \$TOPDIR."
              echo "  ->           Will include in PYTHONPATH."
           fi
+       else
+          topdir_pythonpath_string=$topdir_pythonpath_list
+          topdir_pythonpath_list=()
+          IFS=' ' read -r -a topdir_pythonpath_list <<<$topdir_pythonpath_string
        fi
 
   

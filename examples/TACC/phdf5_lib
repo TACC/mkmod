@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# Make sure you have made a modulefile for mkmod. (See docs/README to "install")
+# or put mkmod
+
 #
 # FEATURES:
 #           Insert user-defined help message text for compiling/loading (HELP_MESSAGE)
@@ -8,6 +12,8 @@
 #********* ALL the complicated rpm logic is not needed *****
 
 DIR=/opt/apps/intel18/impi18_0/phdf5/1.8.16/x86_64
+
+   module load intel/18.0.0
 
             NAME=phdf5 
              VER=1.8.16
@@ -26,12 +32,16 @@ DIR=/opt/apps/intel18/impi18_0/phdf5/1.8.16/x86_64
   export HELP_MESSAGE='
    Compile the source code with the option:
 
-       -I$TACC_HDF5_INC
+       -I$MY_HDF5_INC
 
    and add the following options to the link step:
 
-       -Wl,-rpath,$TACC_HDF5_LIB -L$TACC_HDF5_LIB -lhdf5 -lz 
+       -Wl,-rpath,$MY_HDF5_LIB -L$MY_HDF5_LIB -lhdf5 -lz 
   ' 
- #export AUTO_HELP=none
 
-mkmod
+  mkmod
+
+
+#Note:  If you use PREFEX="", then remove "MY_" from HELP_MESSAGE.
+#       Use "export AUTO_HELP=none" if you don't want all the 
+#       automatic help messages (directory and path information).

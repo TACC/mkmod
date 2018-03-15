@@ -1,8 +1,13 @@
 #!/bin/bash
 
+# Make sure you have made a modulefile for mkmod. (See docs/README to "install")
+# or put mkmod 
+
 # FEATURE: Insert user-defined ENV VAR for APP directory  (ENV1)
 #          Insert whatis module statements                (WHATIS)
 
+    module load gcc/7.1.0      #moose uses gcc 7.1.0 and mpi 17.0
+    
     NAME=moose
     VER=git.20170622
     TOPDIR=/home1/apps/gcc7_1/impi17_0/moose/git.20170622

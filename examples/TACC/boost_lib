@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Real World Example with mkmod
+# Make sure you have made a modulefile for mkmod. (See docs/README to "install")
+# or put mkmod 
+
+
 # Features:  using whatis
 #            APP Environment Variable  (ENV1)
 #            module "conflict" command (CMD1)
@@ -8,11 +13,9 @@
 
 DIR=/opt/apps/intel18/impi18_0/boost/1.66
 
-            NAME=boost
-             VER=1.66
-          TOPDIR=$DIR
-
-   export NAME VER TOPDIR
+   export    NAME=boost
+   export     VER=1.66
+   export  TOPDIR=$DIR
 
 export \
    WHATIS="    Name: boost "
@@ -22,12 +25,14 @@ export \
    WHATIS+=" @ URL: http://www.boost.org"
    WHATIS+=" @ Description: Boost provides free peer-reviewed portable C++ source libraries."
 
-   
+    
    export  ENV1="BOOST_ROOT=$DIR"
    export  CMD1="conflict(\"boost\",\"boost-mpi\")"
    export  manpath_list="$DIR/share/man"
    export  COMPILER_PREREQ="intel/18.0.0"
    export  MPI_PREREQ="impi/18.0.0"
 
-./mkmod
+   export  topdir_path_list="bin sbin"
+
+   mkmod
 

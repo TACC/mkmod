@@ -40,7 +40,8 @@ INSTRUCTIONS
                                        #compiler/mpi agnostic tool
      
         ../bin/mkmod                   #mkmod location relative to this directory
-
+                                       #ASSUMES YOU ARE IN mkmod/docs
+                                       #Change to suite yourself
 
         #logout, then login
 
