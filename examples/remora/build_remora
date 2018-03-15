@@ -1,6 +1,9 @@
 #!/bin/bash
 
 # Real World Example with mkmod
+# Make sure you have made a modulefile for mkmod. (See docs/README to "install")
+# or put mkmod in your path and set MY_MKMOD_EXM to this directory.
+#  
 
 # Features:  uses module help-message file (provided)
 #            NOTE:  it uses the $VAR variable inside module_help_message
@@ -21,7 +24,14 @@ grep -Po 'VERSION=\K[0-9.]*' install.sh
          export NAME=remora
          export TOPDIR=`pwd`
 
-         #export PREFIX=""
-         export HELP_FILE=../module_help_message
+         export PREFIX=""
+         export HELP_FILE=$MY_MKMOD_EXM/remora/module_help_message
+         export ENV1="REMORA_VERBOSE=0"
+         export ENV2="REMORA_MODE=FULL"
+         export ENV3="REMORA_PERIOD=10"
 
          mkmod
+
+#HELP_FILE taken from TACC's remora module.
+#Note: Possibly remora developers will support mkmod and will
+       provide a module_help_message in their distro.
