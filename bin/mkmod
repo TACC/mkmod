@@ -187,11 +187,6 @@ USAGE='
      echo "  ->         If it is, please allow write permission to $DIR_ABOVE."
      exit 9
   fi
-  test -w $MODULESFILES_DIR                 # Make sure usr can write to $MODULEFILES_DIR
-  if [[  $? != 0 ]]; then
-     echo "  -> ERROR:  Cannot write into directory $MODULEFILES_DIR."
-     exit 9
-  fi
 
   #                          # Internal Variables are set here
   
@@ -853,13 +848,14 @@ if [[ ! "$MKMOD_DEBUG"  =~ [^[:space:]]  ]] && [[ ! "$USE_IN_BASHRC"  =~ none  ]
    else
       chx4=""
       echo "  -> Note: Including \"module use $MODULEFILES_DIR\"  in \$HOME/.bashrc."
+      echo "  -> Making backup \$HOME/.bashrc_mkmod_bu.$$."
+      cp $HOME/.bashrc               $HOME/.bashrc_mkmod_bu.$$
+
       echo "  -> ********************************************************************"
       echo ""
       echo "  -> DON'T FORGET TO LOGOUT and LOGIN to activate "module use " in .bashrc"
       echo ""
       echo "  -> ********************************************************************"
-      echo "  ->       Making backup \$HOME/.bashrc_mkmod_bu.$$."
-      cp $HOME/.bashrc               $HOME/.bashrc_mkmod_bu.$$
 
       grep -P '^\s*export\s+__BASHRC_SOURCED__=1' $BASHRC > /dev/null
 
