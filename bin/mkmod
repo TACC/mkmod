@@ -290,8 +290,11 @@ USAGE='
              echo "  -> Autocheck found scripts in \$TOPDIR."
              echo "  ->           Will include in PATH."
           fi
+       else
+          topdir_path_string=$topdir_path_list 
+          topdir_path_list=()
+          IFS=' ' read -r -a topdir_path_list <<<$topdir_path_string
        fi
-
 
   # topdir_ldpath_list
 
