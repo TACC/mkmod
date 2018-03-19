@@ -55,7 +55,7 @@ MKMOD_HELP=$(sed 's/^#//' <<'EOF'
 #       7.) PREFIX                   (default= MY_|my_)
 #       8.) FAMILY                   (default= NAME, set to "" for no family)
 #       9.) HELP_FILE                (default= ./module_help_message, use when
-#                                              location is now PWD.)
+#                                              location is not PWD.)
 #      10.) USE_BASHRC               (if "none", no .bashrc check-- e.g. for RPMS)
 #      11.) MKMOD_DEBUG              (if set, modulefile goes to std out)
 #
@@ -137,6 +137,7 @@ USAGE='
 
                             # default help_message file is module_help_message
   [[ ! "$HELP_FILE"  =~ [^[:space:]]  ]] && HELP_FILE=module_help_message
+
 
 #############BEG      CREATE MODULEFILE
 
@@ -355,6 +356,15 @@ USAGE='
 
   if [[ -f   $HELP_FILE ]]; then
      HELP_MESSAGE_INC=message
+                              # Remove any empty line at beginning of file:
+                              # p means print after pattern matching.
+                              # $ means evaluate \t
+    #sed -n $'/[^ \t]/,$p' $HELP_FILE >/tmp/module_help_file.$$
+     sed -r -n '/[^ \t]/,$p' $HELP_FILE >/tmp/module_help_file.$$
+
+     HELP_FILE=/tmp/module_help_file.$$
+     #https://stackoverflow.com/questions/19767593/sed-command-to-delete-empty-lines-till-the-first-occurrence-of-sentence
+     #https://www.gnu.org/software/sed/manual/sed.html#Multiline-techniques
 
      echo "  -> Found the helpfile $HELP_FILE: WILL USE THIS for the module help message."
 
@@ -427,6 +437,21 @@ USAGE='
 
      done
   fi
+
+                # Version 1 now uses numbered variables (WHATIS1, WHATIS2,...)
+  if [[  "$WHATIS1"  =~ [^[:space:]] ]]; then  #only do if WHATISx exist
+     for i in `seq 1 30`; do
+       text=$( eval echo \"\$WHATIS$i\" )
+       if [[  "$text"  =~ [^[:space:]] ]]; then
+         shopt -s extglob
+         a="${text##*( )}"; trimmed_text="${a%%*( )}"
+         shopt -u extglob
+
+         module+=( "whatis(\"$trimmed_text\")" )
+       fi
+     done
+  fi
+
 
   module+=( "--" )
   
@@ -711,6 +736,7 @@ USAGE='
   [[       $HELP_MESSAGE_INC =~ message     ]] && echo "$HELP_MESSAGE" >> $FILE
   [[ ${AUTO_HELP_INC[@]}     =~ version     ]] && echo "$HELP_VERSION" >> $FILE
   echo "]] "                                                           >> $FILE
+  echo ""                                                              >> $FILE
 
   
                     # Include module array content
@@ -737,6 +763,8 @@ USAGE='
          HELP_ENV_VAL+=(${val})
       fi
     done
+
+  echo ""                >> $FILE
   
                     # Include user-defined (custom) LUA commands
     for i in `seq 1 30`; do
