@@ -27,5 +27,5 @@ ifdef INSTALL
 	cp -r examples $(INSTALL_DIR)
 	cp -r docs     $(INSTALL_DIR)
 endif
-	env NAME=mkmod VER=$(VER) TOPDIR=$(INSTALL_DIR) PREREQ=none bin/mkmod
-#echo " Calling: env NAME=mkmod VER=$(VER) TOPDIR=$(INSTALL_DIR)    bin/mkmod"
+	env NAME=mkmod VER=$(VER) TOPDIR=$(INSTALL_DIR) AUTO_PREREQ=none bin/mkmod
+#echo " Calling: env NAME=mkmod VER=$(VER) TOPDIR=$(INSTALL_DIR) AUTO_PREREQ=none     bin/mkmod"
