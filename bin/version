@@ -1,0 +1,2 @@
+MKMOD_VERSION=2.0  # VERSION SOURCE makefile extracts version from this line
+1.0
