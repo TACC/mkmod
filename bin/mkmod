@@ -1,6 +1,8 @@
 #!/bin/bash
 
-MKMOD_VERSION=0.9b
+                   # DO NOT MODIFY format "MKMOD_version=<ver>  # VERSION SOURCE"
+MKMOD_VERSION=1.0  # VERSION SOURCE makefile extracts version from this line
+
 
 MKMOD_HELP=$(sed 's/^#//' <<'EOF'
 #  mkmod builds & inserts a modulefile in $HOME/modulefiles.
@@ -48,16 +50,19 @@ MKMOD_HELP=$(sed 's/^#//' <<'EOF'
 #       2.) GROUP_ACCESS             (if set, allow primary group access)
 #       3.) GROUP                    (required for non-primary group)
 #
-#       4.) COMPILER_PREREQ          (default= loaded compiler)
-#       5.)      MPI_PREREQ          (default= loaded MPI)
-#       6.) PREREQ                   (set to "none" avoid setting compiler/mpi prereqs.)
+#       4.) COMPILER_PREREQ          (auto default= loaded compiler)
+#       5.)      MPI_PREREQ          (auto default= loaded MPI)
+#       6.)     AUTO_PREREQ          (set to "none" avoid auto setting compiler/mpi prereqs.)
+#       7.)          PREREQ          (sets prereqs -- space separated list)
 #
-#       7.) PREFIX                   (default= MY_|my_)
-#       8.) FAMILY                   (default= NAME, set to "" for no family)
-#       9.) HELP_FILE                (default= ./module_help_message, use when
-#                                              location is not PWD.)
-#      10.) USE_BASHRC               (if "none", no .bashrc check-- e.g. for RPMS)
-#      11.) MKMOD_DEBUG              (if set, modulefile goes to std out)
+#       8.) PREFIX                   (default= MY_|my_)
+#       9.) FAMILY                   (default= NAME, set to "" for no family)
+#      10.) HELP_FILE                (default= $TOPDIR/modules_help, use this var
+#                                              to set path and name for your own help file.)
+#      11.) WHATIS_FILE              (default= $TOPDIR/modules_whatis, use this var
+#                                              to set path and name for your own whatis file.)
+#      12.) USE_BASHRC               (if "none", no .bashrc check-- e.g. for RPMS)
+#      13.) MKMOD_DEBUG              (if set, modulefile goes to std out)
 #
 #  
 #       PATHS -- RELATIVE to TOPDIR
@@ -72,6 +77,11 @@ MKMOD_HELP=$(sed 's/^#//' <<'EOF'
 #           path_list                (e.g. path_list="/sbin /home1/1234/charles/bin")
 #           ldpath_list              (e.g. ldpath_list="/opt/apps/papi/5.6.0/lib")
 #  
+#       PREREQUISITES -- must be loaded
+#  
+#           PREREQ                   (space separated list)
+#  
+#  
 #       WHATIS   (not automatic)
 #  
 #           WHATIS                   (@-separated list. e.g.
@@ -85,19 +95,23 @@ MKMOD_HELP=$(sed 's/^#//' <<'EOF'
 #  
 #      COMMANDS -- LUA statements
 #  
-#          CMD1="<cmd1>"             (e.g. CMD1="conflict(\"boost\",\"boost-mpi\")"
-#          CMD2="<cmd2>"             (e.g. CMD2="load(\"hdf5\")"#  
+#          CMD1="<cmd1>"             (e.g.LMOD CMD1="conflict(\"boost\",\"boost-mpi\")" )
+#          CMD2="<cmd2>"             (e.g.LMOD CMD2="load(\"hdf5\")" )
+#
+#          CMD1="<cmd1>"             (e.g.TMOD CMD1="conflict boost boost-mpi" )
+#          CMD2="<cmd2>"             (e.g.TMOD CMD2="load  hdf5" )
 #  
 #  COMPONENTS - order
 #    1.) Help Message (see default, or contents of help_message file)
 #    2.) whatis       (none by default, use WHATIS env var)
 #    3.) family       (default $NAME_sml, use FAMILY env var)
 #    4.) prereq's     (default=loaded Compiler/MPI, use COMPILER_PREREQ|MPI_PREREQ)
-#    5.) local topdir (definition for $TOPDIR)
-#    6.) prepends     (from topdir_path|ldpath|manpath|pythonpath_list) 
-#    7.) prepends     (from full path path|ldpath|manpath|pythonpath_list) 
-#    8.) setenv       (from ENV1, ENV2, ..., ENV30 )
-#    9.) LUA cmds     (from CUSTOM1, CUSTOM2, ..., CUSTOM30)
+#    5.) prereq's     (Explicitly set)
+#    6.) local topdir (definition for $TOPDIR)
+#    7.) prepends     (from topdir_path|ldpath|manpath|pythonpath_list) 
+#    8.) prepends     (from full path path|ldpath|manpath|pythonpath_list) 
+#    9.) setenv       (from ENV1, ENV2, ..., ENV30 )
+#   10.) LUA cmds     (from COMMAND1, COMMAND2, ..., COMMAND30)
 #
 #  TUTORIAL - module (LMOD)  details
 #     tinyurl.com/chpc-2017-tools  (download CHPC_2017_lmod_28.pdf)
@@ -108,11 +122,22 @@ MKMOD_HELP=$(sed 's/^#//' <<'EOF'
 EOF
 )
 
+# New Features  Version 1.0
+#     TMOD support (by FLAVOR: lmod or tmod). 3/29/2018
+#     Explicitly defined prereqs. support 3/29/2018
+#     WHATIS_FILE support 3/29/2018
+#
+# TODO -- still has some TACCism that should be generalized (e.g. $WORK directory)
+#tmod https://github.com/cea-hpc/modules/blob/master/doc/paper/MC2_whitney_paper.pdf
+
+t_divider="  "
+l_divider="--"
+
 USAGE='
   USAGE: mkmod [-h|--help]
 
          NAME, VER and TOPDIR must be defined and exported.
-  ------
+  ---------------------------------------------------------
 '
 
   if [[ $1 == "-h" ]] || [[ $1 == "--help" ]]; then
@@ -135,13 +160,57 @@ USAGE='
      exit 1 
   fi
 
-                            # default help_message file is module_help_message
-  [[ ! "$HELP_FILE"  =~ [^[:space:]]  ]] && HELP_FILE=module_help_message
+                            # default help_message file is $TOPDIR/modules_help
+  [[ ! "$HELP_FILE"  =~ [^[:space:]]  ]] && HELP_FILE=$TOPDIR/modules_help
 
+                            # look for these compilers (names) as loaded compiler modules
+  compilers=(intel gcc llvm clang open64 pgi ibmcmp)
+ #compilers=(intel clang)
+  MPIs=(impi mvapich2 openmpi mpich)
 
-#############BEG      CREATE MODULEFILE
+#############BEG--v      DETERMINE if using LMOD OR TMOD
+if [[ ! $MKMOD_FLAVOR =~ [^[:space:]] ]]; then
+       # Determine whether to use tmod or lmod.
+       # modver=(`module --version 2>&1`)    #Uh tmodule 3.x displays version and returns "1" !
+       # if [[ ! $? == "0" ]]; then
+       # Use MODULESHOME variable as indicator
+  if [[ ! "$MODULESHOME" =~ [^[:space:]]  ]]; then
+   echo "  ->  ERROR: Found neither Tmod (TCL) nor Lmod (Lua) to exist on this machine."
+   echo "  ->         mkmod supports only these flavors of modules."
+   echo "  ->         Used the existence of \$MODULEHOME to determine existence of environment modules."
+   echo "  ->         You can set MKMOD_FLAVOR to either Tmod or Lmod to override | force creation."
+   exit 1
+  else
+       # Assume tmod.  If --version shows Lau, then assume lmod
+   FLAVOR=tmod
+   modver=(`module --version 2>&1`)
+   status=$?
+   if [[  $status != "0" ]] && [[  $status != "1" ]]; then
+     echo "  -> ERROR: \"module --version\" didn't work." 
+     echo "  ->         You can set MKMOD_FLAVOR to either Tmod or Lmod to override | force creation."
+     exit 0
+   fi
+   [[ ${modver[@]} =~ "Lua" ]] && FLAVOR=lmod
 
- ##BEG  Modulefile Prep
+   echo ""
+   echo "  -> Will create a modulefile for $NAME with the $FLAVOR flavor of modules."
+  fi
+
+else
+  FLAVOR=$( echo $MKMOD_FLAVOR | tr '[:upper:]' '[:lower:]' )
+  if [[ $FLAVOR == "lmod"  ]] || [[ $FLAVOR == "tmod"  ]] ; then
+     echo "  -> Will create $FLAVOR flavored modulefile (determined by \$MKMOD_FLAVOR)."
+  else
+     echo "  -> ERROR: MKMOD_FLAVOR must be either Lmod or Tmod (case insensitive)."
+     echo "  ->        Found $MKMOD_FLAVOR."
+     exit 2
+  fi
+fi
+#############END--^      Determine if using LMOD OR TMOD
+
+#############BEG--v      CREATE MODULEFILE
+
+ ##BEG--v  Modulefile Prep
 
   #   IF TOPDIR doesn't exist -- exit
 
@@ -195,7 +264,11 @@ USAGE='
          NAME_sml=$( echo $NAME | tr '[:upper:]' '[:lower:]' )
   
        MODULE_DIR=$MODULEFILES_DIR/${PREFIX_sml}$NAME_sml
+ if [[ $FLAVOR == "lmod" ]]; then
            MODULE=${VER}.lua
+ else
+           MODULE=${VER}
+fi
   
            BASHRC=$HOME/.bashrc
   
@@ -217,7 +290,7 @@ USAGE='
 
        HELP_MESSAGE_INC=none    #default, no module_help_message to be included
 
-       [[ -f  $HELP_FILE ]] &&  echo "  -> Will include help message from $HELP_FILE file."
+       [[ -f  $HELP_FILE ]] &&  echo "  -> Including help message from $HELP_FILE file."
 
        if [[ "$HELP_MESSAGE"  =~ [^[:space:]]  ]]; then
           if [[ -f   $HELP_FILE ]]; then
@@ -251,7 +324,6 @@ USAGE='
           fi
        fi
 
-       [[ ! "$FAMILY"        =~ [^[:space:]]  ]] &&  FAMILY=$NAME_sml
        if [[ ! "$FAMILY"        =~ [^[:space:]]  ]]; then
           FAMILY=$NAME_sml
        else
@@ -355,6 +427,7 @@ USAGE='
   # HELP_FILE exits, use it instead of default or user-defined HELP_MESSAGE
 
   if [[ -f   $HELP_FILE ]]; then
+     ORIG_HELP_FILE=$HELPFILE
      HELP_MESSAGE_INC=message
                               # Remove any empty line at beginning of file:
                               # p means print after pattern matching.
@@ -363,21 +436,22 @@ USAGE='
      sed -r -n '/[^ \t]/,$p' $HELP_FILE >/tmp/module_help_file.$$
 
      HELP_FILE=/tmp/module_help_file.$$
+
      #https://stackoverflow.com/questions/19767593/sed-command-to-delete-empty-lines-till-the-first-occurrence-of-sentence
      #https://www.gnu.org/software/sed/manual/sed.html#Multiline-techniques
 
-     echo "  -> Found the helpfile $HELP_FILE: WILL USE THIS for the module help message."
+     echo "  -> Found the helpfile $ORIG_HELP_FILE: WILL USE THIS for the module help message."
 
-                  # help file be a LUA string declaration and can contain ENV VARS for evaluation.
-                  # If the file also contains a specific HERE FILE syntax, then it is sources.
+                  # help file contains lines that need ENV VARS for evaluation.
+                  # If the file begins with specific HERE FILE syntax, then it is sources.
                   # The latter is for those making RPMs, and want the file to be of his form.
 
      grep -Po '\s*read.*HELP_MESSAGE.*<<[\s-]*EOF' $HELP_FILE 2>&1 >/dev/null
      if [[ ! $? == 0 ]]; then
-                  # normal LUA string declaration. Read file
+                  # just a bunch of normal text lines . Read file
                   # Then evaluate the environment variable expressions
         help_message=$( <$HELP_FILE ) 
-        HELP_MESSAGE=$( eval echo \"\$"$help_message"\" )
+        HELP_MESSAGE=$( eval echo \""$help_message"\" )
 
      else
 
@@ -413,17 +487,20 @@ USAGE='
   ##end HELP_FILE
 
          
- ##END  Modulefile Prep
+ ##END--^  Modulefile Prep
   
   module=()
                  #Will include help_message string here later 
                  #This helps with debugging when message is long.
-                
-  module+=( "help(help_msg,\"\\n\")" )
+
+ if [[ $FLAVOR == "lmod" ]]; then
+     module+=( "help(help_msg,\"\\n\")" )
+     module+=( "$l_divider" )
+ fi
+
 
   if [[ "$WHATIS" =~ [^[:space:]]  ]]; then
      echo "  -> Including \"whatis\" information in the modulefile."
-     module+=( "--" )
 
      IFS='@' read -r -a lines <<< $WHATIS
 
@@ -432,8 +509,11 @@ USAGE='
         shopt -s extglob
         a="${text##*( )}"; trimmed_text="${a%%*( )}"
         shopt -u extglob
-
+       if [[ $FLAVOR == "lmod" ]]; then
         module+=( "whatis(\"$trimmed_text\")" )
+       else
+        module+=( "module-whatis \"$trimmed_text\"" )
+       fi # flavor
 
      done
   fi
@@ -447,94 +527,299 @@ USAGE='
          a="${text##*( )}"; trimmed_text="${a%%*( )}"
          shopt -u extglob
 
+        if [[ $FLAVOR == "lmod" ]]; then
          module+=( "whatis(\"$trimmed_text\")" )
+        else
+         module+=( "module-whatis \"$trimmed_text\"" )
+        fi
        fi
      done
   fi
+               # Just add any whatis information in default modules_whatis file
+               # or a user-specified file ($WHATIS_FILE)
+
+  default_file=$TOPDIR/modules_whatis; default_exists=false
+  [[ -e $default_file  ]] &&  [[ -r $default_file ]] && default_exists=true
+
+  if [[ ! $WHATIS_FILE =~ [^[:space:]] ]]; then
+    if [[ -e $default_file  ]] &&  [[ -r $default_file ]]; then
+       WHATIS_FILE=$default_file
+       echo "  -> Including whatis info from (app) $default_file file."
+    fi
+  else
+    if [[ $default_exists == true ]]; then
+       echo "  -> WARNING:  You designated a whatis file as $WHATIS_FILE."
+       echo "  ->           This will override the use of the default whatis file"
+       echo "  ->           at $default_file, for the application."
+       echo "  ->           You might want to unset WHATIS_FILE and use the default."
+       echo "  ->           This is probably what you want to do. --"
+       echo "  ->           OR to include both sets of information, unset WHATIS_FILE"
+       echo "  ->              and set WHATIS env vars with the information in $WHATIS_FILE."
+       echo "  ->              See mkmod --help for more WHATIS env var info."
+    fi
+  fi
+
+  if [[ $WHATIS_FILE =~ [^[:space:]] ]] && [[ -e $WHATIS_FILE  ]] &&  [[ -r $WHATIS_FILE ]]; then
+    while IFS= read -r text; do
+       shopt -s extglob
+       a="${text##*( )}"; trimmed_text="${a%%*( )}"
+       shopt -u extglob
+       if [[ $FLAVOR == "lmod" ]]; then
+          module+=( "whatis(\"$trimmed_text\")" )
+       else
+          module+=( "module-whatis \"$trimmed_text\"" )
+       fi
+    done < $WHATIS_FILE
+    if [[ $default_exists == false ]]; then
+       echo "  -> Including whatis information from $WHATIS_FILE file."
+    fi
+  fi
 
 
-  module+=( "--" )
+
+  [[ $FLAVOR == "lmod" ]] && module+=( "$l_divider" )
+  [[ $FLAVOR == "tmod" ]] && module+=( "$t_divider" )
   
-  [[ "$FAMILY" =~ [^[:space:]]  ]]&&  module+=( "family(\"$FAMILY\")" )
+  if [[ $FLAVOR == "lmod" ]] ; then
+     [[ "$FAMILY" =~ [^[:space:]]  ]]&&  module+=( "family(\"$FAMILY\")" )
+  fi
 
+##########BEG--v PREREQs
 
- ## Compiler prereq
+ if [[ ! "$AUTO_PREREQ" =~ none  ]]; then
+
+  ## Compiler prereq
   comp_mpi_prereq=()
 
- if [[ ! "$PREREQ" =~ none  ]]; then
-  if [[ ! "$COMPILER_PREREQ" =~ [^[:space:]]  ]]; then
+  if [[ $FLAVOR == "lmod" ]]; then
 
-    if [[ "$LMOD_FAMILY_COMPILER_VERSION" =~ [^[:space:]] ]] && [[ "$LMOD_FAMILY_COMPILER" =~ [^[:space:]] ]]; then
-      COMPILER_PREREQ=$LMOD_FAMILY_COMPILER/$LMOD_FAMILY_COMPILER_VERSION
-      echo "  -> Setting COMPILER PREREQ to $LMOD_FAMILY_COMPILER/$LMOD_FAMILY_COMPILER_VERSION"
-      comp_mpi_prereq=( "$COMPILER_PREREQ" )
-     #module+=( "prereq(\"$COMPILER_PREREQ\")" )
+   if [[ ! "$COMPILER_PREREQ" =~ [^[:space:]]  ]]; then
+     if [[ "$LMOD_FAMILY_COMPILER_VERSION" =~ [^[:space:]] ]] && [[ "$LMOD_FAMILY_COMPILER" =~ [^[:space:]] ]]; then
+       COMPILER_PREREQ=$LMOD_FAMILY_COMPILER/$LMOD_FAMILY_COMPILER_VERSION
+       echo "  -> Setting COMPILER PREREQ to $LMOD_FAMILY_COMPILER/$LMOD_FAMILY_COMPILER_VERSION"
+       comp_mpi_prereq=( "$COMPILER_PREREQ" )
+      #module+=( "prereq(\"$COMPILER_PREREQ\")" )
+     fi
+   else  # COMPILER_PREREQ set
+     if [[ "$LMOD_FAMILY_COMPILER_VERSION" =~ [^[:space:]] ]] && [[ "$LMOD_FAMILY_COMPILER" =~ [^[:space:]] ]]; then
+         if [[ $LMOD_FAMILY_COMPILER/$LMOD_FAMILY_COMPILER_VERSION != $COMPILER_PREREQ ]]; then
+           echo ""
+           echo "  -> WARNING:"
+           echo "  ->         COMPILER PREREQ=$COMPILER_PREREQ"
+           echo "  ->   BUT   LMOD_FAMILY_COMPILER/LMOD_FAMILY_COMPILER_VERSION=$LMOD_FAMILY_COMPILER/$LMOD_FAMILY_COMPILER_VERSION"
+           echo ""
+         fi
+     fi
+    #module+=( "prereq(\"$COMPILER_PREREQ\")" )
+    comp_mpi_prereq="$COMPILER_PREREQ"
+   fi
+ 
+ 
+   ## MPI prereq
+   if [[ ! "$MPI_PREREQ" =~ [^[:space:]]  ]]; then
+ 
+     if [[ "$LMOD_FAMILY_MPI_VERSION" =~ [^[:space:]] ]] && [[ "$LMOD_FAMILY_MPI" =~ [^[:space:]] ]]; then
+       MPI_PREREQ=$LMOD_FAMILY_MPI/$LMOD_FAMILY_MPI_VERSION
+       echo "  -> Setting MPI PREREQ to $LMOD_FAMILY_MPI/$LMOD_FAMILY_MPI_VERSION"
+       comp_mpi_prereq+=( "$MPI_PREREQ" )
+       #module+=( "prereq(\"$MPI_PREREQ\")" )
+     fi
+ 
+   else  # MPI_PREREQ set
+ 
+     if [[ "$LMOD_FAMILY_MPI_VERSION" =~ [^[:space:]] ]] && [[ "$LMOD_FAMILY_MPI" =~ [^[:space:]] ]]; then
+         if [[ $LMOD_FAMILY_MPI/$LMOD_FAMILY_MPI_VERSION != $MPI_PREREQ ]]; then
+           echo "" 
+           echo "  -> WARNING:"
+           echo "  ->         MPI PREREQ=$MPI_PREREQ"
+           echo "  ->   BUT   LMOD_FAMILY_MPI/LMOD_FAMILY_MPI_VERSION=$LMOD_FAMILY_MPI/$LMOD_FAMILY_MPI_VERSION"
+           echo ""
+         fi
+     fi
+     comp_mpi_prereq+=( "$MPI_PREREQ" )
+     #module+=( "prereq(\"$MPI_PREREQ\")" )
+   fi
+
+   if [[ "$comp_mpi_prereq" =~ [^[:space:]]  ]]; then
+     list=""; comma=""
+     for prereq in "${comp_mpi_prereq[@]}"; do
+       list="${list}${comma} \"$prereq\""
+       comma=","
+     done
+ 
+     module+=( "prereq($list)" )
+ 
+   fi
+
+  else # ^--lmod  v--tmod
+
+   ######BEG--^ tmod   COMPILER
+   #COMPILER
+                          #Find the loaded compilers
+   loaded_compilers=()
+   comp_count=0
+   IFS=':' read -r -a loaded_compilers <<< "$LOADEDMODULES"
+   for loaded_compiler in  "${loaded_compilers[@]}"; do
+      for compiler in  "${compilers[@]}"; do
+        #if [[ $loaded_compiler =~ "$compiler/" ]]; then
+         if [[ ${loaded_compiler%%/*} =~ "$compiler" ]]; then
+            comp_count=$(( comp_count + 1 ))
+            [[ $MKMOD_DEBUG =~ [^[:space:]] ]] &&  
+               echo "Found compiler=$compiler  loaded_compiler=$loaded_compiler"
+         fi
+      done
+
+   done
+
+
+   if [[ ! "$COMPILER_PREREQ" =~ [^[:space:]]  ]]; then
+
+      if (( $comp_count > 1 )); then
+         echo "  -> ERROR:  Houston, we have a problem."
+         echo "  ->         Found two compilers loaded at the same time:"
+         echo "  ->         ${loaded_compilers[@]}"
+         echo "  ->         If you need this export \$COMPILER_PREREQ with:"
+         echo "  ->         ${loaded_compilers[@]}"
+         exit
+      fi
+
+      if (( $comp_count == 1 )); then
+         module+=( "prereq ${loaded_compilers[0]}" )
+      fi
+
+
+   else  # COMPILER_PREREQ set
+
+                          #COMPILER_PREREQ must be a specific compiler
+                          #allow corner case of multiple compilers for COMPILER_PREREQ
+    matches=0
+    IFS=' ' read -r -a prereq_compilers <<< "$COMPILER_PREREQ"
+#                              echo "prereq_compilers=${prereq_compilers[@]}"
+
+                          # Check for matching loaded compiler(s) 
+    for prereq_compiler in "${prereq_compilers[@]}"; do
+      for loaded_compiler in  "${loaded_compilers[@]}"; do
+         if [[ $prereq_compiler == "$loaded_compiler" ]]; then
+            matches=$(( matches + 1 ))
+         fi
+      done
+    done
+ 
+                          # disparity between what is loaded and prereq-requested, then point this out.
+    if (( ${#loaded_compilers[@]} != ${#prereq_compilers[@]} || ${#prereq_compilers[@]} != $matches )); then
+                          #User specified Compiler PREREQ didn't match loaded compilers
+                          #Make sure user knows about this JIC.
+       echo "  -> FYI:" 
+       echo "  ->      PREREQ           compilers: ${prereq_compiler[@]} "
+       echo "  ->      Presently loaded compilers: ${loaded_compilers[@]} "
+       echo ""
     fi
 
-  else  # COMPILER_PREREQ set
-
-    if [[ "$LMOD_FAMILY_COMPILER_VERSION" =~ [^[:space:]] ]] && [[ "$LMOD_FAMILY_COMPILER" =~ [^[:space:]] ]]; then
-        if [[ $LMOD_FAMILY_COMPILER/$LMOD_FAMILY_COMPILER_VERSION != $COMPILER_PREREQ ]]; then
-          echo ""
-          echo "  -> WARNING:"
-          echo "  ->         COMPILER PREREQ=$COMPILER_PREREQ"
-          echo "  ->   BUT   LMOD_FAMILY_COMPILER/LMOD_FAMILY_COMPILER_VERSION=$LMOD_FAMILY_COMPILER/$LMOD_FAMILY_COMPILER_VERSION"
-          echo ""
-        fi
-    fi
-   #module+=( "prereq(\"$COMPILER_PREREQ\")" )
-   comp_mpi_prereq="$COMPILER_PREREQ"
-  fi
-
-
- ## MPI prereq
-  if [[ ! "$MPI_PREREQ" =~ [^[:space:]]  ]]; then
-
-    if [[ "$LMOD_FAMILY_MPI_VERSION" =~ [^[:space:]] ]] && [[ "$LMOD_FAMILY_MPI" =~ [^[:space:]] ]]; then
-      MPI_PREREQ=$LMOD_FAMILY_MPI/$LMOD_FAMILY_MPI_VERSION
-      echo "  -> Setting MPI PREREQ to $LMOD_FAMILY_MPI/$LMOD_FAMILY_MPI_VERSION"
-      comp_mpi_prereq+=( "$MPI_PREREQ" )
-      #module+=( "prereq(\"$MPI_PREREQ\")" )
-    fi
-
-  else  # MPI_PREREQ set
-
-    if [[ "$LMOD_FAMILY_MPI_VERSION" =~ [^[:space:]] ]] && [[ "$LMOD_FAMILY_MPI" =~ [^[:space:]] ]]; then
-        if [[ $LMOD_FAMILY_MPI/$LMOD_FAMILY_MPI_VERSION != $MPI_PREREQ ]]; then
-          echo "" 
-          echo "  -> WARNING:"
-          echo "  ->         MPI PREREQ=$MPI_PREREQ"
-          echo "  ->   BUT   LMOD_FAMILY_MPI/LMOD_FAMILY_MPI_VERSION=$LMOD_FAMILY_MPI/$LMOD_FAMILY_MPI_VERSION"
-          echo ""
-        fi
-    fi
-    comp_mpi_prereq+=( "$MPI_PREREQ" )
-    #module+=( "prereq(\"$MPI_PREREQ\")" )
-  fi
-
-  if [[ "$comp_mpi_prereq" =~ [^[:space:]]  ]]; then
-    list=""; comma=""
-    for prereq in "${comp_mpi_prereq[@]}"; do
-      list="${list}${comma} \"$prereq\""
-      comma=","
+    echo "  -> Including Compiler Prerequite:  ${prereq_compiler[@]} "
+    for prereq_compiler in "${prereq_compilers[@]}"; do
+       module+=( "prereq $prereq_compiler" )
     done
 
-    module+=( "prereq($list)" )
+   fi #end NO-COMPILER_PREQ  COMPILER_PREQ
 
-  fi
+   ######END--^ tmod   COMPILER
 
- fi  #end PREREQ=none
+   #MPI
+   ######BEG--v tmod   MPI
+                           #Find the loaded MPIs
+   loaded_MPIs=()
+   MPI_count=0
+   IFS=':' read -r -a loaded_MPIs <<< "$LOADEDMODULES"
+   for loaded_MPI in  "${loaded_MPIs[@]}"; do
+
+      for MPI in  "${MPIs[@]}"; do
+         if [[ ${loaded_MPI%%/*} =~ "$MPI" ]]; then
+            MPI_count=$(( MPI_count + 1 ))
+            [[ $MKMOD_DEBUG =~ [^[:space:]] ]] &&  
+               echo "Found MPI=$MPI  loaded_MPI=$loaded_MPI"
+         fi
+      done
+
+   done
+                         #MPI_PREREQ must be a specific MPI
+                         #Only 1 is ever allowed
+   if (( $MPI_count > 1 )); then
+      echo "  -> ERROR:  Houston, we have a problem."
+      echo "  ->         Found two or more MPIs loaded at the same time:"
+      echo "  ->         ${loaded_MPIs[@]}"
+      echo "  ->         To circumvent this set \$MPI_PREREQ"
+      exit
+   fi
+
+
+
+   if [[ ! "$MPI_PREREQ" =~ [^[:space:]]  ]]; then 
+
+      module+=( "prereq ${loaded_MPIs[0]}" )
+
+   else  # MPI_PREREQ set
+
+      matches=0           # Check for matching loaded MPI(s) 
+      for loaded_MPI in  "${loaded_MPIs[@]}"; do
+         if [[ "$MPI_PREREQ" == "$loaded_MPI" ]]; then
+            matches=$(( matches + 1 ))
+         fi
+      done
+                          #User specified MPI PREREQ must match loaded MPIs
+                          #If note, make sure user knows about this JIC.
+    if (( $matches == 0 )); then
+       echo "  -> FYI:"
+       echo "  ->      PREREQ           MPI: $PREREQ_MPI "
+       echo "  ->      Presently loaded MPI: ${loaded_MPIs[@]} "
+       echo ""
+    fi
+
+    echo "  -> Including MPI Prerequite:  $PREREQ_MPI "
+    module+=( "prereq $PREREQ_MPI" )
+    ######END--^ tmod   MPI
+
+   fi   #end if else MPI NOPREREQ | PREREQ
+
+
+###########################################################
+
+  fi   #end if else lmod | tmod
+
+ fi   #end if not AUTO_PREREQ=none
+
+               #Now add explict PREREQS
+
+ if [[ $PREREQ =~ [^[:space:]] ]]; then
+   IFS=' ' read -r -a prereqs <<< "$PREREQ"
+   for prereq in  "${prereqs[@]}"; do
+     if [[ $FLAVOR == "lmod" ]]; then
+       module+=("prereq( \"$prereq\" )" ) 
+     else
+       module+=("prereq $prereq" ) 
+     fi
+   done
+ fi
+
+
+##########ENV--^ PREREQs
 
  ## TOPDIR (as a local variable)
-
-  module+=( "--" )
-
+if [[ $FLAVOR == "lmod" ]]; then
+  module+=( "$l_divider" )
   module+=("     local topdir   = \"$TOPDIR\"")
-  module+=( "--" )
+  module+=( "$l_divider" )
+else
+  module+=( "$t_divider" )
+  module+=(  "     set topdir     \"$TOPDIR\"")
+  module+=( "$t_divider" )
+fi
+
   
  ## DEFAULT package variable (e.g. of form MY_PKGNAME_DIR=<directory> )
 
-  at=""
+  at=""; bs=""
+ #[[ $FLAVOR == "tmod" ]] && bs="\\"
+  [[ $FLAVOR == "tmod" ]] && bs=""
 
   for dir in ${topdir_env_list[@]}; do
      DIR=$( echo $(basename $dir) | tr '[:lower:]' '[:upper:]' )
@@ -548,54 +833,87 @@ USAGE='
      [[ $DIR == "EXAMPLES" ]] && DIR=EXM; [[ $DIR == "TUTORIALS"  ]] && DIR=TUT
 
      if [[ $dir =~ dir   ]]; then
+       if [[ $FLAVOR == "lmod" ]]; then
         module+=( "setenv(\"${PREFIX_cap}${NAME_cap}_${DIR}\", topdir)" )
-        DISTRO_DIRS+=" $at \$${PREFIX_cap}${NAME_cap}_${DIR}      $TOPDIR";      at="@"
+       else
+        module+=( "setenv   ${PREFIX_cap}${NAME_cap}_${DIR}  \$topdir"  )
+       fi
+        DISTRO_DIRS+=" $at $bs\$${PREFIX_cap}${NAME_cap}_${DIR}      $TOPDIR";      at="@"
      else
+       if [[ $FLAVOR == "lmod" ]]; then
         module+=( "setenv(\"${PREFIX_cap}${NAME_cap}_${DIR}\", pathJoin(topdir,\"$dir\"))" )
-        DISTRO_DIRS+=" $at \$${PREFIX_cap}${NAME_cap}_${DIR}      $TOPDIR/$dir"; at="@"
+       else
+        module+=( "setenv   ${PREFIX_cap}${NAME_cap}_${DIR}           \$topdir/$dir" )
+       fi
+        DISTRO_DIRS+=" $at $bs\$${PREFIX_cap}${NAME_cap}_${DIR}      $TOPDIR/$dir"; at="@"
      fi
 
   done
 
+
  ## DEFAULT path environment variables (path relative to $TOPDIR)
 
-     module+=( "--" )
+    if [[ $FLAVOR == "lmod" ]]; then
+     module+=( "$l_divider" )
+    else
+     module+=( "$t_divider" )
+    fi
   
                              # If no topdir bin directory exist, put topdir in PATH
                                                           at=""
   if [[ ! "$topdir_path_list" =~ [^[:space:]]  ]]; then  
+    if [[ $FLAVOR == "lmod" ]]; then
      module+=( "prepend_path(\"PATH\", topdir)" )
+    else
+     module+=( "prepend-path   PATH  \$topdir" )
+    fi
      module+=( " " )
 
-     PATH_DIRS+=" $at \$PATH              $TOPDIR" ;      at="@"
+     PATH_DIRS+=" $at $bs\$PATH              $TOPDIR" ;      at="@"
                        #123456789012345...^
   fi
   
   for dir in ${topdir_path_list[@]}; do
+    if [[ $FLAVOR == "lmod" ]]; then
      module+=( "prepend_path(\"PATH\", pathJoin(topdir,\"$dir\"))" )
+    else
+     module+=( "prepend-path   PATH           \$topdir/$dir" )
+    fi
 
-     PATH_DIRS+=" $at \$PATH              $TOPDIR/$dir" ; at="@"
+     PATH_DIRS+=" $at $bs\$PATH              $TOPDIR/$dir" ; at="@"
                        #123456789012345...^
   done
   
   for dir in ${topdir_ldpath_list[@]}; do
+    if [[ $FLAVOR == "lmod" ]]; then
      module+=( "prepend_path(\"LD_LIBRARY_PATH\", pathJoin(topdir,\"$dir\"))" )
+    else
+     module+=( "prepend-path   LD_LIBRARY_PATH           \$topdir/$dir" )
+    fi
 
-     PATH_DIRS+=" $at \$LD_LIBRARY_PATH   $TOPDIR/$dir" ; at="@"
+     PATH_DIRS+=" $at $bs\$LD_LIBRARY_PATH   $TOPDIR/$dir" ; at="@"
                        #123456789012345...^
   done
   
   for dir in ${topdir_manpath_list[@]}; do
+    if [[ $FLAVOR == "lmod" ]]; then
      module+=( "prepend_path(\"MANPATH\", pathJoin(topdir,\"$dir\"))" )
+    else
+     module+=( "prepend-path   MANPATH           \$topdir/$dir" )
+    fi
 
-     PATH_DIRS+=" $at \$MANPATH           $TOPDIR/$dir" ; at="@"
+     PATH_DIRS+=" $at $bs\$MANPATH           $TOPDIR/$dir" ; at="@"
                        #123456789012345...^
   done
 
   for dir in ${topdir_pythonpath_list[@]}; do
+    if [[ $FLAVOR == "lmod" ]]; then
      module+=( "prepend_path(\"PYTHONPATH\", pathJoin(topdir,\"$dir\"))" )
+    else
+     module+=( "prepend-path   PYTHONPATH           \$topdir/$dir" )
+    fi
 
-     PATH_DIRS+=" $at \$PYTHONPATH        $TOPDIR/$dir" ; at="@"
+     PATH_DIRS+=" $at $bs\$PYTHONPATH        $TOPDIR/$dir" ; at="@"
                        #123456789012345...^
   done
 
@@ -605,28 +923,44 @@ USAGE='
  ## USER-DEFINED path environment variables (full path)
 
   for dir in ${path_list[@]}; do
+    if [[ $FLAVOR == "lmod" ]]; then
      module+=( "prepend_path(\"PATH\",\"$dir\")" )
+    else
+     module+=( "prepend-path   PATH     $dir" )
+    fi
 
-     PATH_DIRS+=" $at \$PATH              $dir" ; at="@"
+     PATH_DIRS+=" $at $bs\$PATH              $dir" ; at="@"
                        #123456789012345...^
   done
   
   for dir in ${ldpath_list[@]}; do
+    if [[ $FLAVOR == "lmod" ]]; then
      module+=( "prepend_path(\"LD_LIBRARY_PATH\",\"$dir\")" )
+    else
+     module+=( "prepend-path   LD_LIBRARY_PATH     $dir" )
+    fi
 
-     PATH_DIRS+=" $at \$LD_LIBRARY_PATH   $dir" ; at="@"
+     PATH_DIRS+=" $at $bs\$LD_LIBRARY_PATH   $dir" ; at="@"
                        #123456789012345...^
   done
   for dir in ${manpath_list[@]}; do
+    if [[ $FLAVOR == "lmod" ]]; then
      module+=( "prepend_path(\"MANPATH\",\"$dir\")" )
+    else
+     module+=( "prepend-path   MANPATH     $dir" )
+    fi
 
-     PATH_DIRS+=" $at \$MANPATH           $dir" ; at="@"
+     PATH_DIRS+=" $at $bs\$MANPATH           $dir" ; at="@"
                        #123456789012345...^
   done
   for dir in ${pythonpath_list[@]}; do
+    if [[ $FLAVOR == "lmod" ]]; then
      module+=( "prepend_path(\"PYTHONPATH\",\"$dir\")" )
+    else
+     module+=( "prepend-path   PYTHONPATH     $dir" )
+    fi
 
-     PATH_DIRS+=" $at \$PYTHONPATH        $dir" ; at="@"
+     PATH_DIRS+=" $at $bs\$PYTHONPATH        $dir" ; at="@"
                        #123456789012345...^
   done
   
@@ -637,15 +971,16 @@ USAGE='
        FILE=$MODULE_DIR/$MODULE
   fi
 
-
   ##vvv begin Gather all help messages together
 
   if [[ $AUTO_HELP_INC =~ module ]]; then
 
      HELP_MODULE=$'\n   '"USAGE -- MODULES"
      HELP_MODULE+=$'\n   '
+    if [[ $FLAVOR == "lmod" ]]; then
      HELP_MODULE+=$'\n   '" Required Modules"
      HELP_MODULE+=$'\n   '" module load $COMPILER_PREREQ $MPI_PREREQ       (required if not system defaults)"
+    fi
      HELP_MODULE+=$'\n   '
      HELP_MODULE+=$'\n   '" Application Modules"
      HELP_MODULE+=$'\n   '
@@ -655,7 +990,12 @@ USAGE='
 
   if [[ ${AUTO_HELP_INC[@]} =~ dirs ]]; then
      HELP_DIRS=""
-    #HELP_DIRS+=$'\n   '"$NAME_cap DIRECTORY = $TOPDIR"
+     HELP_DIRS+=$'\n   ENV VAR - INFO'
+     HELP_DIRS+=$'\n    '"\$${PREFIX_cap}${NAME_cap}_VER      $VER"
+     HELP_DIRS+=$'\n    '"\$${PREFIX_cap}${NAME_cap}_MOD      $MODULE_DIR/$MODULE"
+
+
+     HELP_DIRS+=$'\n'
      HELP_DIRS+=$'\n   ENV VAR - DISTRO        (SUB)DIRECTORY'
 
      IFS='@' read -r -a text <<< "$DISTRO_DIRS"
@@ -725,17 +1065,39 @@ USAGE='
 
  ## vvv NOW (finally) INSERT  appropriate content into the module file ($FILE)
 
+  rm -f $FILE; touch $FILE
                     # Include help message
-  echo ""                 > $FILE
+  if [[ $FLAVOR == "lmod" ]]; then
+   echo "-------------------------------------------------------"     >> $FILE
+   echo "-- generated by mkmod $MKMOD_VERSION   user: $USER --"       >> $FILE
+   echo "-------------------------------------------------------"     >> $FILE
+  else
+   echo "#%Module1.0"                                                 >> $FILE
+   echo "#######################################################"     >> $FILE
+   echo "## generated by mkmod $MKMOD_VERSION   user: $USER ##"       >> $FILE
+   echo "#######################################################"     >> $FILE
+  fi
 
+  echo ""                                                             >> $FILE
+
+ if [[ $FLAVOR == "lmod" ]]; then
   echo "local help_msg = [[ "                                          >> $FILE
+ else
+  echo "proc ModulesHelp { } { "                                       >> $FILE
+  echo "puts { "                                                       >> $FILE
+ fi
   [[ ${AUTO_HELP_INC[@]}     =~ dirs        ]] && echo "$HELP_DIRS"    >> $FILE
   [[ ${AUTO_HELP_INC[@]}     =~ paths       ]] && echo "$HELP_PATHS"   >> $FILE
   [[ ${AUTO_HELP_INC[@]}     =~ envs        ]] && echo "$HELP_ENVS"    >> $FILE
   [[ ${AUTO_HELP_INC[@]}     =~ module      ]] && echo "$HELP_MODULE"  >> $FILE
   [[       $HELP_MESSAGE_INC =~ message     ]] && echo "$HELP_MESSAGE" >> $FILE
   [[ ${AUTO_HELP_INC[@]}     =~ version     ]] && echo "$HELP_VERSION" >> $FILE
+ if [[ $FLAVOR == "lmod" ]]; then
   echo "]] "                                                           >> $FILE
+ else
+  echo "  }"                                                           >> $FILE
+  echo "} "                                                            >> $FILE
+ fi
   echo ""                                                              >> $FILE
 
   
@@ -758,7 +1120,11 @@ USAGE='
       env=$( eval echo \"\$ENV$i\" )
       if [[  "$env"  =~ [^[:space:]] ]]; then
          IFS='= ' read -r key val <<< "$env"
+                         if [[ $FAVOR == "lmod" ]]; then
                           echo "setenv( \"${key}\",  \"${val}\" )" >> $FILE
+                         else
+                          echo "setenv ${key} ${val}"              >> $FILE
+                         fi
          HELP_ENV_KEY+=(${key})
          HELP_ENV_VAL+=(${val})
       fi
@@ -787,10 +1153,10 @@ USAGE='
  ## ^^^ END NOW (finally) INSERT  appropriate content into the module file ($FILE)
 
 
-#############END      CREATE MODULEFILE
+#############END--^      CREATE MODULEFILE
   
   
-#############BEG      GROUP ACCESS REQUEST
+#############BEG--v      GROUP ACCESS REQUEST
   
   if [[ $GROUP_ACCESS =~ [^[:space:]] ]]; then
   
@@ -878,10 +1244,10 @@ USAGE='
      fi
      echo ""
   fi
-#############END      GROUP ACCESS REQUEST
+#############END--^      GROUP ACCESS REQUEST
 
 
-#############BEG      MODULEFILES  ACCESS
+#############BEG--v      MODULEFILES  ACCESS
 
 if [[ ! "$MKMOD_DEBUG"  =~ [^[:space:]]  ]] && [[ ! "$USE_IN_BASHRC"  =~ none  ]] ; then
   echo "  -> MODULEFILES DIRECTORY ACCESS (USE):"
@@ -939,6 +1305,8 @@ if [[ ! "$MKMOD_DEBUG"  =~ [^[:space:]]  ]] && [[ ! "$USE_IN_BASHRC"  =~ none  ]
    echo "  -> Finished with $chx4 \"module use\" setup in \$HOME/.bashrc."
    echo ""
 fi
-#############END      MODULEFILES  ACCESS
+#############END--^      MODULEFILES  ACCESS
 
 #}
+
+#https://stackoverflow.com/questions/6676568/how-to-print-in-a-tabular-format-in-tcl
