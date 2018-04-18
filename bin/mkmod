@@ -1482,13 +1482,14 @@ USAGE='
 
   if [[ ! "$MKMOD_DEBUG"  =~ [^[:space:]]  ]] && [[ ! "$USE_IN_SHELLRC"  =~ none  ]] ; then
      echo $'\n'"  -> MODULE USE in SHELLRC FILE:"
-     echo "  -> Checking for \"module use $MODULEFILES_DIR\" in \$HOME/$shellrc."
  
      [[ $my_login_shell =~ bash ]] && shellrc=.bashrc SHELLRC=$HOME/.bashrc  RC=BASHRC
      [[ $my_login_shell =~  zsh ]] && shellrc=.zshenv SHELLRC=$HOME/.zshenv  RC=ZSHRC
      [[ $my_login_shell =~  csh ]] && shellrc=.cshrc  SHELLRC=$HOME/.cshrc   RC=CSHRC
+
+     echo "  -> Checking for \"module use $MODULEFILES_DIR\" in \$HOME/$shellrc."
  
-    new_shellrc_file=no
+     new_shellrc_file=no
      if [[ ! -e $SHELLRC ]]; then
         echo "  -> Creating $SHELLRC for locating the \"module use \$MODULEFILE_DIR\" command."
         touch $SHELLRC
