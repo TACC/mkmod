@@ -1,0 +1,160 @@
+
+function evaluate {
+
+     FILE=$1
+     FILE_TYPE=$2
+     EVALD_FILE=$3  
+
+
+
+     FILE_ORIG=$1
+#                                   # Search for  SH-type, $... and ${...}  variables in file.
+#                                   # Search for RPM-type, %{...},  variables in file.
+
+       normal_vars=( $(cat $FILE | sed 's/\\\$//' | grep -Po '\$\K[a-z,A-Z,0-9,_]*') )
+     squiggle_vars=( $(cat $FILE | sed 's/\\\$//' | grep -Po '\${\K[^}]*') )
+         #rpm_vars=( $(cat $FILE | sed 's/\\\%//' | grep -Po '\%{\K[^}]*') )
+          rpm_vars=( $(cat $FILE | sed 's/\\\%//' | grep -Po '\%{\K[a-z,A-Z,0-9,_]*') )
+
+#                                  # combine normal and squiggle vars
+     sh_vars=( "${normal_vars[@]}" "${squiggle_vars[@]}" )
+
+    #if [[ ${#sh_vars[@]} > 0 ]] || [[ ${#sh_vars[@]} > 0 ]]; then
+    #   EVALD_FILE=/tmp/${FILE_TYPE}_evaluated_$USER.$$
+    #fi
+
+
+#    ##########################################################################
+#    v--  SH-type Variables
+
+#                                   # Find shell variables that need evaluation in FILE
+     if [[ ${#sh_vars[@]} > 0 ]]; then
+
+        echo "  -> Found the following Shell variable(s) in $FILE_TYPE file:"
+#                                   # Find unique shell variables
+
+        unique_sh_vars=()
+        for item in "${sh_vars[@]}"; do
+           add=yes
+           for unique_item in "${unique_sh_vars[@]}"; do
+             [[ $item == $unique_item ]] && add=no
+           done
+           [[ $add == yes ]] && unique_sh_vars+=($item)
+        done
+
+        for sh_var in "${unique_sh_vars[@]}"; do
+           echo "  ->      $sh_var"
+        done
+#                                   # Determine if shell variables found in file are defined.
+        for sh_var in "${unique_sh_vars[@]}"; do
+           env_val=$( eval echo \"\$$sh_var\" )
+           if [[ ! $env_val =~ [^[:space:]] ]]; then
+             echo "  -> NOTICE: Shell variable \$$sh_var is not define."
+             echo "  ->         You should appropriately define $sh_var (& export it) and rerun mkmod."
+           fi
+        done
+     fi
+#                                   # Now substitue the shell variables in the ${FILE_TYPE} file-- All is done.
+
+     SH_EVALD_FILE=/tmp/${FILE_TYPE}_sh_evaluated_$USER.$$
+     if [[ ${sh_vars[@]} > 0 ]] && [[ ${rpm_vars[@]} > 0 ]]; then
+#                                                    # protect not\\$ with not\@@__@@
+        cat $FILE | sed 's/\([^\\]\)\\\$/\1@@~~~@@/'  > /tmp/${FILE_TYPE}_sh_protected_$USER.$$ 
+        text=$( < /tmp/${FILE_TYPE}_sh_protected_$USER.$$ )
+     else
+        text=$( < $FILE )      #Capture content of file into text
+     fi
+     TEXT=$( eval echo \""$text"\" )     # Evalute variables in file text
+
+     if [[ ${#rpm_vars[@]} > 0 ]]; then
+        echo "$TEXT" >$SH_EVALD_FILE        # If rpm vars, store in SH_EVALD_FILE for rpm evaluations
+     else
+        echo "$TEXT" >$EVALD_FILE             # Finished, write to EVALUATED file (EVALD_WHATIS_FILE)
+     fi
+
+#    ^--  SH-type Variables
+#    ##########################################################################
+
+
+
+#    ##########################################################################
+#    v--  RPM-type Variables
+
+     if [[ ${#rpm_vars[@]} > 0 ]]; then       # Could have used grep  '%{.*}' $WHATIS_FILE  2>&1 > /dev/null
+        echo "  -> Found the following RPM-type, %{...}, variable(s) in the ${FILE_TYPE} file:"
+#
+        unique_rpm_vars=()
+        for item in "${rpm_vars[@]}"; do
+           add=yes
+           for unique_item in "${unique_rpm_vars[@]}"; do
+             [[ $item == $unique_item ]] && add=no
+           done
+           [[ $add == yes ]] && unique_rpm_vars+=($item)
+        done
+
+#
+        for rpm_var in "${unique_rpm_vars[@]}"; do
+           echo "  ->      $rpm_var"
+        done
+
+        count=0;
+        for rpm_var in "${unique_rpm_vars[@]}"; do
+
+           env_val=$( eval echo \"\$$rpm_var\" )
+
+#                             # $rpm_var is not defined
+           if [[ ! $env_val =~ [^[:space:]] ]]; then
+#
+              echo "  -> NOTICE: Shell variable \$$rpm_var is not defined and cannot be substituted for %{$rpm_var}."
+
+#                             # Check to see if rpm_var is all CAPS
+#                             # If not, check to see if CAPS SH version is available
+              SH_VAR=${rpm_var^^}
+              if [[ $SH_VAR != $rpm_var ]]; then
+                 ENV_VAL=$( eval echo \"\$$SH_VAR\" )
+                 if [[ $ENV_VAL =~ [^[:space:]] ]] && [[ "$MKMOD_CAP_SUBSTITUTION" != "none" ]]; then
+                    export eval $rpm_var=$VAR
+                    echo "  ->         However, \$$SH_VAR is defined, so mkmod will use it for %{$rpm_var}."
+                    export eval $rpm_var=$ENV_VAL
+                    [[ $count < 1 ]] && echo "  -> Set MKMOD_CAP_SUBSTITUTION=none to avoid this %{...} substitution feature."
+                    count=$(( count + 1 ))
+                 else
+                    echo "  ->         It is Best to appropriately define the variable named \"$rpm_var\" (& export it) and rerun mkmod."
+                 fi
+              else
+                 echo "  ->         It is Best to appropriately define the variable named \"$rpm_var\" (& export it) and rerun mkmod."
+
+              fi
+
+
+           fi
+
+        done
+
+#                                   # Now substitue the SHELLized variables in the file 
+#                                   # If no SHELL variables were found FILE in original file.
+        RPM_EVALD_FILE=/tmp/${FILE_TYPE}_rpm_evaluated_$USER.$$
+
+                                                                                      # 4CAPS use 's/\([^\\]\)\%{\(.*\)}/\1\${U\2}/'
+        cat $SH_EVALD_FILE | sed 's/\([^\\]\)\%{\(.*\)}/\1\${\2}/' > $RPM_EVALD_FILE  #  %{...} -> ${...} (but not \%{...})
+        sed -i 's/\\\%{\(.*\)}/%{\1}/'                               $RPM_EVALD_FILE  # \%{...} -> %{...}
+
+        if [[ ${#sh_vars[@]} > 0 ]] && [[ ${#rpm_vars[@]} > 0 ]]; then
+           sed -i 's/\(.\)@@~~~@@/\1\\\$/' $RPM_EVALD_FILE                                   # Unprotect \$ (replace .@@~~@@ with .\$)
+        fi
+
+        text=$( <$RPM_EVALD_FILE )                    #Capture content of file into text
+        TEXT=$( eval echo \""$text"\" )               #Evalute variables in shell text variable; put in TEXT variable
+
+        echo "$TEXT" >$EVALD_FILE                     #Write out evaluted file content "evaluated" file
+
+
+     fi
+
+#    ^--  RPM-type Variables
+#    ##########################################################################
+
+     [[ $MKMOD_DEBUG =~ [^[:space:]] ]] && cat $EVALD_WHATIS_FILE
+
+     rm -rf $SH_EVALD_FILE $RPM_EVALD_FILE /tmp/${FILE_TYPE}_sh_protected_$USER.$$
+}
