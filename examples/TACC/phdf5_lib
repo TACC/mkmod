@@ -1,8 +1,7 @@
 #!/bin/bash
 
-# Make sure you have made a modulefile for mkmod. (See docs/README to "install")
-# or put mkmod
-
+# Make sure you have made a modulefile for mkmod and have loaded it.
+# (See docs/INSTALL)
 #
 # FEATURES:
 #           Insert user-defined help message text for compiling/loading (HELP_MESSAGE)

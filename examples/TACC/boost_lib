@@ -1,8 +1,8 @@
-#!/bin/bash
+#0!/bin/bash
 
 # Real World Example with mkmod
-# Make sure you have made a modulefile for mkmod. (See docs/README to "install")
-# or put mkmod 
+# Make sure you have made a modulefile for mkmod and have loaded it.
+# (See docs/INSTALL)
 
 
 # Features:  using whatis
