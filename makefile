@@ -14,7 +14,8 @@ else
 endif
 
 #VER = `grep -P 'MKMOD_VERSION=[.0-9]+\s+\#\s+makefile extracts version from this line' bin/version | sed 's/.*=//' | sed s'/\s*\#.*//'`
-VER = $(eval VER := $(shell grep -P 'MKMOD_VERSION=[.0-9]+\s+\#\s+VERSION SOURCE' bin/version | sed 's/.*=//'| sed s'/\s*\#.*//'))$(value VER)
+#VER = $(eval VER := $(shell grep -P 'MKMOD_VERSION=[.0-9]+\s+\#\s+VERSION SOURCE' bin/version | sed 's/.*=//'| sed s'/\s*\#.*//'))$(value VER)
+ VER = $(shell grep -P 'MKMOD_VERSION=[.0-9]+\s+\#\s+VERSION SOURCE' bin/version | sed 's/.*=//'| sed s'/\s*\#.*//')
 
 
 .PHONY: all
