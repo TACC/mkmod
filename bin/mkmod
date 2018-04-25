@@ -66,12 +66,18 @@ MKMOD_HELP=$(sed 's/^#//' <<'EOF'
 #
 #       8.) PREFIX                   (default= MY_|my_)
 #       9.) FAMILY                   (default= NAME, set to "" for no family)
-#      10.) HELP_FILE                (default= $TOPDIR/modules_help, use this var
-#                                              to set path and name for your own help file.)
-#      11.) WHATIS_FILE              (default= $TOPDIR/modules_whatis, use this var
-#                                              to set path and name for your own whatis file.)
-#      12.) USE_BASHRC               (if "none", no .bashrc check-- e.g. for RPMS)
-#      13.) MKMOD_DEBUG              (if set, modulefile goes to std out)
+#
+#      10.) HELP_FILE                (default= finds modules_help file relative to $TOPDIR, use this 
+#                                              var to set path and name for your own help file.
+#                                              Set to "none" to avoid searching for file. 
+#      11.) WHATIS_FILE              (default= finds whatis_help file relative to $TOPDIR, use this 
+#                                              var to set path and name for your own help file.
+#                                              Set to "none" to avoid searching for file. 
+#      12.) MODULEFILE_FILE          (default= finds modulefile.lua|tcl file relative to $TOPDIR, use
+#                                              this var to set path and name for your own help file.
+#                                              Set to "none" to avoid searching for file. 
+#      13.) USE_IN_SHELLHRC          (if "none", no .<shell>rc check and insert-- e.g. use for RPMS)
+#      14.) MKMOD_DEBUG              (if set, modulefile goes to std out, no check and insert of .<shell>rc)
 #
 #  
 #       PATHS -- RELATIVE to TOPDIR
@@ -120,7 +126,7 @@ MKMOD_HELP=$(sed 's/^#//' <<'EOF'
 #    7.) prepends     (from topdir_path|ldpath|manpath|pythonpath_list) 
 #    8.) prepends     (from full path path|ldpath|manpath|pythonpath_list) 
 #    9.) setenv       (from ENV1, ENV2, ..., ENV30 )
-#   10.) LUA cmds     (from COMMAND1, COMMAND2, ..., COMMAND30)
+#   10.) LUA cmds     (from CMD1, CMD2, ..., CMD30)
 #
 #  TUTORIAL - module (LMOD)  details
 #     tinyurl.com/chpc-2017-tools  (download CHPC_2017_lmod_28.pdf)
@@ -132,16 +138,17 @@ EOF
 )
 
 # New Features  Version 1.0
-#     Explicitly defined prereqs support             2018_01_29
-#     TMOD support (by FLAVOR: lmod or tmod )        2018_02_29
-#                  (automatically determined)
-#     WHATIS_FILE support                            2018_03_29
-#     makefile, to install mkmod and make its module 2018_03_05
-#     New mkmod_utils for env. var substitution      2018_04_04
-#     Remove /tmp temporary files after use          2018_04_05
-#     Use $BASH_SOURCE directory for mkmod_utils     2018_04_17
+#     Explicitly defined prereqs support               2018_01_29
+#     TMOD support (by FLAVOR: lmod or tmod )          2018_02_29
+#                  (automatically determined )
+#     WHATIS_FILE support                              2018_03_29
+#     makefile, to install mkmod and make its module   2018_03_05
+#     New mkmod_utils for env. var substitution        2018_04_04
+#     Remove /tmp temporary files after use            2018_04_05
+#     Use $BASH_SOURCE directory for mkmod_utils       2018_04_17
 #     "module use" in startup files supported 
-#     for bash, csh,tcsh and zsh shells.             2018_04_18
+#     for bash, csh,tcsh and zsh shells.               2018_04_18
+#     Allow none for WHATIS|HELP_FILE to avoid search  2018_04_18
 # TODO -- still has some TACCism that should be generalized (e.g. $WORK directory)
 #tmod https://github.com/cea-hpc/modules/blob/master/doc/paper/MC2_whitney_paper.pdf
 
@@ -260,6 +267,10 @@ USAGE='
   if [[ ! $MODULEFILE_FILE =~ [^[:space:]] ]]; then
     provided_modulefile=no
 
+#                                            Don't look for file for these cases
+#                                            e.g. mkmod has modulefile.$FLAVOR in examples
+   if [[ ! $MODULEFILE_FILE == none ]] && [[ ! $NAME == mkmod ]]; then
+
     modulefiles=( `find $TOPDIR -name modulefile.$FLAVOR -print` )
     if [[ ${#modulefiles[@]} >  1 ]]; then
        echo "  -> ERROR: Houston, we have a problem."
@@ -276,6 +287,9 @@ USAGE='
          echo "  -> FOUND App modulefile: $MODULEFILE_FILE "
          echo "  -> Will NOT MAKE MAKEFILE, will use this file after performing variable substitution."
       fi
+   else
+         echo "  -> Will NOT LOOK FOR a modulefile.$FLAVOR file."
+   fi
 #                     # MODULEFILE_FILE is set, make sure it exists and is readable
   else
       provided_modulefile=yes
@@ -307,6 +321,10 @@ USAGE='
   if [[ ! $WHATIS_FILE =~ [^[:space:]] ]]; then
     provided_whatis=no
 
+#                                            Don't look for file for these cases
+#                                            e.g. mkmod has modulefile.$FLAVOR in examples
+   if [[ ! $WHATIS_FILE == none ]] && [[ ! $NAME == mkmod ]]; then
+
     whatiss=( `find $TOPDIR -name modules_whatis -print` )
     if [[ ${#whatiss[@]} >  1 ]]; then
        echo "  -> ERROR: Houston, we have a problem."
@@ -323,6 +341,9 @@ USAGE='
          echo "  -> FOUND whatis file: $WHATIS_FILE "
          echo "  -> Will create whatis entries after performing variable substitution on this file."
       fi
+   else
+         echo "  -> Will NOT LOOK FOR a modules_whatis file"
+   fi
 #                     # WHATIS_FILE is set, make sure it exists and is readable
   else
       provided_whatis=yes
@@ -354,6 +375,10 @@ USAGE='
   if [[ ! $HELP_FILE =~ [^[:space:]] ]]; then
     provided_help=no
 
+#                                            Don't look for file for these cases
+#                                            e.g. mkmod has modulefile.$FLAVOR in examples
+   if [[ ! $HELP_FILE == none ]] && [[ ! $NAME == mkmod ]]; then
+
     helps=( `find $TOPDIR -name modules_help -print` )
     if [[ ${#helps[@]} >  1 ]]; then
        echo "  -> ERROR: Houston, we have a problem."
@@ -370,6 +395,9 @@ USAGE='
          echo "  -> FOUND help file: $HELP_FILE "
          echo "  -> Will create help entries after performing variable substitution on this file."
       fi
+   else
+         echo "  -> Will NOT LOOK FOR a modules_help file."
+   fi 
 #                     # HELP_FILE is set, make sure it exists and is readable
   else
       provided_help=yes
