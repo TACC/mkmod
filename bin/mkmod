@@ -1317,7 +1317,7 @@ USAGE='
     env=$( eval echo \"\$ENV$i\" )
     if [[  "$env"  =~ [^[:space:]] ]]; then
        IFS='= ' read -r key val <<< "$env"
-                       if [[ $FAVOR == "lmod" ]]; then
+                       if [[ $FLAVOR == "lmod" ]]; then
                         echo "setenv( \"${key}\",  \"${val}\" )" >> $FILE
                        else
                         echo "setenv ${key} ${val}"              >> $FILE
