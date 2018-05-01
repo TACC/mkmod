@@ -21,11 +21,11 @@ endif
 all:
 ifdef INSTALL_DIR
 	@ echo " Installing mkmod in $(INSTALL_DIR)"
-	mkdir -p       $(INSTALL_DIR)
-	cp -r bin      $(INSTALL_DIR)
-	cp -r examples $(INSTALL_DIR)
-	cp -r docs     $(INSTALL_DIR)
-	env NAME=mkmod VER=$(VER) TOPDIR=$(INSTALL_DIR) AUTO_PREREQ=none bin/mkmod
+	mkdir -p       $(INSTALL_DIR)/mkmod
+	cp -r bin      $(INSTALL_DIR)/mkmod
+	cp -r examples $(INSTALL_DIR)/mkmod
+	cp -r docs     $(INSTALL_DIR)/mkmod
+	env NAME=mkmod VER=$(VER) TOPDIR=$(INSTALL_DIR)/mkmod AUTO_PREREQ=none bin/mkmod
 else
 	env NAME=mkmod VER=$(VER) TOPDIR=`pwd` AUTO_PREREQ=none bin/mkmod
 endif
