@@ -829,6 +829,7 @@ USAGE='
 
 #   v-COMPILER tmod
                            #Find the loaded compilers
+    comp_prereq=()
     loaded_compilers=()
     comp_count=0
     IFS=':' read -r -a loaded_compilers <<< "$LOADEDMODULES"
@@ -837,13 +838,13 @@ USAGE='
          #if [[ $loaded_compiler =~ "$compiler/" ]]; then
           if [[ ${loaded_compiler%%/*} =~ "$compiler" ]]; then
              comp_count=$(( comp_count + 1 ))
+             comp_prereq=($loaded_compiler)
              [[ $MKMOD_DEBUG =~ [^[:space:]] ]] &&  
                 echo "Found compiler=$compiler  loaded_compiler=$loaded_compiler"
           fi
        done
  
     done
- 
  
     if [[ ! "$COMPILER_PREREQ" =~ [^[:space:]]  ]]; then
  
@@ -857,7 +858,8 @@ USAGE='
        fi
  
        if (( $comp_count == 1 )); then
-          module+=( "prereq ccc1 ${loaded_compilers[0]}" )
+          module+=( "prereq ${comp_prereq[0]}" )
+          echo "  -> Compiler prereq set to ${comp_prereq[0]} "
        fi
  
  
@@ -890,7 +892,7 @@ USAGE='
  
      echo "  -> Including Compiler Prerequite:  ${prereq_compiler[@]} "
      for prereq_compiler in "${prereq_compilers[@]}"; do
-        module+=( "prereq ccc2 $prereq_compiler" )
+        module+=( "prereq $prereq_compiler" )
      done
  
     fi #end NO-COMPILER_PREQ  COMPILER_PREQ
@@ -931,6 +933,7 @@ USAGE='
  
      if [[ $MPI_loaded_cnt > 0 ]]; then
        module+=( "prereq ${loaded_MPIs[0]}" )
+       echo "  -> MPI prereq set to ${loaded_MPIs[0]} "
      fi
  
     else  # MPI_PREREQ set
