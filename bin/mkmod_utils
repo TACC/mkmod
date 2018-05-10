@@ -158,3 +158,18 @@ function evaluate {
 
      rm -rf $SH_EVALD_FILE $RPM_EVALD_FILE /tmp/${FILE_TYPE}_sh_protected_$USER.$$
 }
+
+
+assigned_env_vars(){
+# For all Environment Variables in an array (name=$1[@]), 
+# return variables that have assigned values.
+
+   local list=$1[@]                          #get passed variable name
+   local assigned=()                         #set accumulator to blank
+   for var in "${!list}"; do                 #Use indirect reference
+      if [[ ${!var} =~ [^[:space:]] ]]; then
+        assigned+=($var)                     #put in accumulator
+      fi
+    done
+    echo "${assigned[@]}"                    #return all variables with assignments
+}
