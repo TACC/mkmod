@@ -1,7 +1,9 @@
 #!/bin/bash
 
+# MUST register all environment variables used by mkmod (Search for this linein VARS section)
+
                    # DO NOT MODIFY format "MKMOD_version=<ver>  # VERSION SOURCE"
-MKMOD_VERSION=1.0  # VERSION SOURCE makefile extracts version from this line
+MKMOD_VERSION=2.0  # VERSION SOURCE makefile extracts version from this line
 
 if [[ ${BASH_SOURCE[0]} =~ [^[:space:]] ]]; then
    BASE_DIR="$(dirname "${BASH_SOURCE[0]}")"
@@ -32,6 +34,11 @@ MKMOD_HELP=$(sed 's/^#//' <<'EOF'
 #
 #       Set MODULEFILE_DIR if you don't want to use $HOME/modulefiles.
 #
+#  NB   If you are creating a "utility" module which does not depend on the compiler or MPI,
+#       unload the compiler and MPI modules so that the mkmod automatic detection does not
+#       create a prerequite for these loaded modules. (If not, the presently loaded
+#       compiler and MPI will need to be available (load) when you load your module-- which
+#       will probably be of no concern for most situations.
 #  
 #  FEATURES - module creation
 #       * Auto sets module name to my_<name>/<ver>
@@ -165,6 +172,29 @@ USAGE='
 '
 # v-- ARGS and ENV VARS
 
+    # MUST register all environment variables used by mkmod (Search for this linein VARS section)
+    
+    var_groups=( nvt_list whatis_list use_list modfiles_list prereq_list list_debug path_list )
+
+       nvt_list=( NAME VER TOPDIR )
+    whatis_list=( WHATIS )
+       use_list=( USE_IN_SHELLRC )
+  modfiles_list=( PREFIX MODULEFILES_DIR GROUP_ACCESS GROUP )
+    prereq_list=( FAMILY COMPILER_PREREQ MPI_PREREQ AUTO_PREREQ PREREQ )
+      file_list=( HELP_FILE WHATIS_FILE MODULEFILE_FILE )
+     list_debug=( MKMOD_DEBUG )
+      path_list=(
+                  TOPDIR_PATH_LIST
+                  TOPDIR_LDPATH_LIST
+                  TOPDIR_MANPATH_LIST
+                  TOPDIR_PYTHONPATH_LIST
+                  PATH_LIST
+                  LDPATH_LIST
+                  MANPATH_LIST
+                  PYTHONPATH_LIST
+    )
+
+
   if [[ $1 == "-h" ]] || [[ $1 == "--help" ]]; then
      echo "$USAGE"
      echo "$MKMOD_HELP"
@@ -184,6 +214,21 @@ USAGE='
      echo " $USAGE "
      exit 1 
   fi
+
+  count=0
+  for var_group in ${var_groups[@]}; do 
+    assigned=$(assigned_env_vars $var_group)
+    if [[ ${assigned[@]} =~ [^[:space:]] ]]; then
+      if [[ $count == 0 ]]; then
+        printf "  ->  These Environment Variables are being USED by mkmod\n"
+        printf "  ->  ENV VAR                     VALUE\n"
+      fi
+      count=$(( count + 1 ))
+      for var in ${assigned[@]}; do
+        printf "  ->      %-23s %s\n" "$var" "${!var}"
+      done
+    fi
+  done
 
 # ^-- ARGS and ENV VARS
 
@@ -1183,6 +1228,8 @@ USAGE='
      HELP_DIRS+=$'\n   ENV VAR - INFO'
      HELP_DIRS+=$'\n    '"\$${PREFIX_cap}${NAME_cap}_VER      $VER"
      HELP_DIRS+=$'\n    '"\$${PREFIX_cap}${NAME_cap}_MOD      $MODULE_DIR/$MODULE"
+     HELP_DIRS+=$'\n    '"\$${NAME_cap}_HOME        $TOPDIR"
+     HELP_DIRS+=$'\n    '"\$${NAME_cap}HOME         $TOPDIR"
 
 
      HELP_DIRS+=$'\n'
@@ -1314,6 +1361,19 @@ USAGE='
   #fi
 
   #v--ENV
+
+  if [[ $FLAVOR == "lmod" ]]; then
+    echo "setenv( \"${PREFIX_cap}${NAME_cap}_VER\",  \"$VER\" )" >> $FILE
+    echo "setenv( \"${PREFIX_cap}${NAME_cap}_MOD\",  \"$MODULE_DIR/$MODULE\" )" >> $FILE
+    echo "setenv( \"${NAME_cap}_HOME\",    \"$TOPDIR\" )" >> $FILE
+    echo "setenv( \"${NAME_cap}HOME\",     \"$TOPDIR\" )" >> $FILE
+  else
+    echo "setenv ${PREFIX_cap}${NAME_cap}_VER  $VER"                >> $FILE
+    echo "setenv ${PREFIX_cap}${NAME_cap}_MOD  $MODULE_DIR/$MODULE" >> $FILE
+    echo "setenv ${NAME_cap}_HOME          $TOPDIR"             >> $FILE
+    echo "setenv ${NAME_cap}HOME           $TOPDIR"             >> $FILE
+  fi
+
                   # Include user-defined environment variables
   for i in `seq 1 30`; do
     env=$( eval echo \"\$ENV$i\" )
