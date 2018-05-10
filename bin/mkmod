@@ -82,15 +82,17 @@ MKMOD_HELP=$(sed 's/^#//' <<'EOF'
 #  
 #       PATHS -- RELATIVE to TOPDIR
 #  
-#           topdir_path_list         (e.g. ="x86_64/bin")
-#           topdir_ldpath_list       (e.g. ="x86_64/libraries/linpack")
-#           topdir_manpath_list      (e.g. ="man linpack/man otherpkg/man")
-#           topdir_pythonpath_list   (e.g. ="share/pkgs/python")
+#           TOPDIR_PATH_LIST         (e.g. ="x86_64/bin")
+#           TOPDIR_LDPATH_LIST       (e.g. ="x86_64/libraries/linpack")
+#           TOPDIR_MANPATH_LIST      (e.g. ="man linpack/man otherpkg/man")
+#           TOPDIR_PYTHONPATH_LIST   (e.g. ="share/pkgs/python")
 #  
 #       PATHS -- FULL
 #  
-#           path_list                (e.g. path_list="/sbin /home1/1234/charles/bin")
-#           ldpath_list              (e.g. ldpath_list="/opt/apps/papi/5.6.0/lib")
+#           PATH_LIST                (e.g. path_list="/sbin /home1/1234/charles/bin")
+#           LDPATH_LIST              (e.g. ldpath_list="/opt/apps/papi/5.6.0/lib")
+#           MANPATH_LIST             (e.g. ="/dell/srvadmin/share/man /intel/man")
+#           PYTHONPATH_LIST          (e.g. ="$HOME/python /share/projects/google/python")
 #  
 #       PREREQUISITES -- must be loaded
 #  
@@ -574,7 +576,7 @@ USAGE='
  
 # v-- TOPDIR PATHS
 
-       if [[ ! "$topdir_path_list" =~ [^[:space:]]  ]]; then
+       if [[ ! "$TOPDIR_PATH_LIST" =~ [^[:space:]]  ]]; then
           if [[ -d $TOPDIR/bin ]]; then
              topdir_path_list+=(bin)
              echo "  -> Autocheck found bin in \$TOPDIR."
@@ -586,16 +588,15 @@ USAGE='
              echo "  ->           Will include in PATH."
           fi
        else
-          topdir_path_string=$topdir_path_list 
           topdir_path_list=()
-          IFS=' ' read -r -a topdir_path_list <<<$topdir_path_string
+          IFS=' ' read -r -a topdir_path_list <<<$TOPDIR_PATH_LIST
        fi
 
 # ^-- TOPDIR PATHS
 
 # v-- TOPDIR LD_LIBRARY_PATHS
 
-       if [[ ! "$topdir_ldpath_list" =~ [^[:space:]]  ]]; then
+       if [[ ! "$TOPDIR_LDPATH_LIST" =~ [^[:space:]]  ]]; then
           [[ -d $TOPDIR/lib   ]] && topdir_ldpath_list=(lib)
           [[ -d $TOPDIR/libs  ]] && topdir_ldpath_list=(libs)
           [[ -d $TOPDIR/lib64 ]] && topdir_ldpath_list=(lib64)
@@ -604,25 +605,23 @@ USAGE='
              echo "  ->           Will include in LD_LIBRARY_PATH."
           fi
        else
-          topdir_ldpathstring=$topdir_ldpathlist
-          topdir_ldpathlist=()
-          IFS=' ' read -r -a topdir_ldpathlist <<<$topdir_ldpathstring
+          topdir_ldpath_list=()
+          IFS=' ' read -r -a topdir_ldpath_list <<<$TOPDIR_LDPATH_LIST
        fi
 
 # ^-- TOPDIR LD_LIBRARY_PATHS
 
 # v-- TOPDIR MAN_PATHS
 
-       if [[ ! "$topdir_manpath_list" =~ [^[:space:]]  ]]; then
+       if [[ ! "$TOPDIR_MANPATH_LIST" =~ [^[:space:]]  ]]; then
           if [[ -d $TOPDIR/man ]]; then
              topdir_manpath_list=(man)
              echo "  -> Autocheck found man in \$TOPDIR."
              echo "  ->           Will include in MANPATH."
           fi
        else
-          topdir_manpath_string=$topdir_manpath_list
           topdir_manpath_list=()
-          IFS=' ' read -r -a topdir_manpath_list <<<$topdir_manpath_string
+          IFS=' ' read -r -a topdir_manpath_list <<<$TOPDIR_MANPATH_LIST
        fi
 
 # ^-- TOPDIR MAN_PATHS
@@ -631,7 +630,7 @@ USAGE='
 # v-- TOPDIR PYTHONPATHS
 
 
-       if [[ ! "$topdir_pythonpath_list" =~ [^[:space:]]  ]]; then
+       if [[ ! "$TOPDIR_PYTHONPATH_LIST" =~ [^[:space:]]  ]]; then
           if [[ -d $TOPDIR/python ]]; then
              topdir_pythonpath_list=(python)
              echo "  -> Autocheck found python in \$TOPDIR."
@@ -640,7 +639,7 @@ USAGE='
        else
           topdir_pythonpath_string=$topdir_pythonpath_list
           topdir_pythonpath_list=()
-          IFS=' ' read -r -a topdir_pythonpath_list <<<$topdir_pythonpath_string
+          IFS=' ' read -r -a topdir_pythonpath_list <<<$TOPDIR_PYTHONPATH_LIST
        fi
 
   
@@ -1109,7 +1108,7 @@ USAGE='
 # v-- USER-DEFINED PATH
 # # USER-DEFINED path environment variables (full path)
 
-  for dir in ${path_list[@]}; do
+  for dir in ${PATH_LIST[@]}; do
     if [[ $FLAVOR == "lmod" ]]; then
      module+=( "prepend_path(\"PATH\",\"$dir\")" )
     else
@@ -1120,7 +1119,7 @@ USAGE='
                           #123456789012345....^
   done
   
-  for dir in ${ldpath_list[@]}; do
+  for dir in ${LDPATH_LIST[@]}; do
     if [[ $FLAVOR == "lmod" ]]; then
      module+=( "prepend_path(\"LD_LIBRARY_PATH\",\"$dir\")" )
     else
@@ -1130,7 +1129,7 @@ USAGE='
      PATH_DIRS+=" $at $bs\$LD_LIBRARY_PATH    $dir" ; at="@"
                           #123456789012345....^
   done
-  for dir in ${manpath_list[@]}; do
+  for dir in ${MANPATH_LIST[@]}; do
     if [[ $FLAVOR == "lmod" ]]; then
      module+=( "prepend_path(\"MANPATH\",\"$dir\")" )
     else
@@ -1140,7 +1139,7 @@ USAGE='
      PATH_DIRS+=" $at $bs\$MANPATH            $dir" ; at="@"
                           #123456789012345....^
   done
-  for dir in ${pythonpath_list[@]}; do
+  for dir in ${PYTHONPATH_LIST[@]}; do
     if [[ $FLAVOR == "lmod" ]]; then
      module+=( "prepend_path(\"PYTHONPATH\",\"$dir\")" )
     else
