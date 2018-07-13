@@ -1,9 +1,18 @@
 #!/bin/bash
 
-# MUST register all environment variables used by mkmod (Search for this linein VARS section)
+create_module_file=true     #testing: set to false to NOT execute module creation
+module_use_in_startup=true  #set to false to NOT execute module use insertion (in startups)
 
-                   # DO NOT MODIFY format "MKMOD_version=<ver>  # VERSION SOURCE"
+# MUST register all environment variables used by mkmod (Search for this line in VARS section)
+
 MKMOD_VERSION=2.0  # VERSION SOURCE makefile extracts version from this line
+                   # DO NOT MODIFY format "MKMOD_version=<ver>  # VERSION SOURCE"
+
+if [[ $USER == "milfeld" ]]; then
+echo ""
+echo "************ TODO:  TACC SPECIFIC  STOCKYARD  (mitigate, to utils) "
+echo ""
+fi
 
 if [[ ${BASH_SOURCE[0]} =~ [^[:space:]] ]]; then
    BASE_DIR="$(dirname "${BASH_SOURCE[0]}")"
@@ -37,8 +46,8 @@ MKMOD_HELP=$(sed 's/^#//' <<'EOF'
 #  NB   If you are creating a "utility" module which does not depend on the compiler or MPI,
 #       unload the compiler and MPI modules so that the mkmod automatic detection does not
 #       create a prerequite for these loaded modules. (If not, the presently loaded
-#       compiler and MPI will need to be available (load) when you load your module-- which
-#       will probably be of no concern for most situations.
+#       compiler and MPI will need to be available (loaded) when you load your module-- 
+#       which will probably be of no concern for most situations.
 #  
 #  FEATURES - module creation
 #       * Auto sets module name to my_<name>/<ver>
@@ -57,7 +66,7 @@ MKMOD_HELP=$(sed 's/^#//' <<'EOF'
 #  
 #  FEATURES - module setup
 #       * Sets up $HOME/modulefiles directory (mkdir, perms, etc.)
-#       * Sets up "module use $HOME/modulefiles" in $HOME/.bashrc
+#       * Sets up "module use $HOME/modulefiles" in bash|csh|tcsh|zsh $HOME/.<startup_file(s)>
 #  
 #  FEATURES - control and instrumentation
 #       Defaults can be changed by these Environment Variables
@@ -83,7 +92,7 @@ MKMOD_HELP=$(sed 's/^#//' <<'EOF'
 #      12.) MODULEFILE_FILE          (default= finds modulefile.lua|tcl file relative to $TOPDIR, use
 #                                              this var to set path and name for your own help file.
 #                                              Set to "none" to avoid searching for file. 
-#      13.) USE_IN_SHELLHRC          (if "none", no .<shell>rc check and insert-- e.g. use for RPMS)
+#      13.) USE_IN_SHELLRC           (if "none", no .<shell>rc check and insert-- e.g. use for RPMS)
 #      14.) MKMOD_DEBUG              (if set, modulefile goes to std out, no check and insert of .<shell>rc)
 #
 #  
@@ -158,42 +167,71 @@ EOF
 #     "module use" in startup files supported 
 #     for bash, csh,tcsh and zsh shells.               2018_04_18
 #     Allow none for WHATIS|HELP_FILE to avoid search  2018_04_18
+#
+# New Features  Version 2.0
+#     reset lists all set env vars used by mkmod       2018_06_21
+#     use export MKMOD=reset | mkmod reset|-r|--reset
+#     `mkmod reset` unsets any set vars for any shell
+#
+#     "module use $HOME/mkmodfiles" insertions works   2018_06_21
+#     for tcsh|csh, bash and zsh.
+#     Use STARTUP_FILE_SUFFIX if startups need suffix.
+#     SITE and SITE_STARTUP_FILE_SUFFIX lists (e.g. NERSC)
+#     provide site suffixes.
+#
+#     Pseudo Unit Tests.  Allows setting lmod|tmod flavor,
+#     and site, login shell (bash|tcsh|csh|zsh) for checking
+#     flavors, and startup shells, respectively.       2018_07_07
+#   
+# TODO -- allow just module creation or just module use insertion
 # TODO -- still has some TACCism that should be generalized (e.g. $WORK directory)
 #tmod https://github.com/cea-hpc/modules/blob/master/doc/paper/MC2_whitney_paper.pdf
 
+#                       Lmod and and Tmod divisions markers (mv this to section later)
 t_divider="  "
 l_divider="--"
 
 USAGE='
-  USAGE: mkmod [-h|--help]
+  USAGE: mkmod [-h] | [-v] | [-r] | [-u "unit-type-test-variables"]
 
          NAME, VER and TOPDIR must be defined and exported.
+
+         -h and -v are for this help and mkmod version number
+         -r displays "unset <var_list>" to execute to remove 
+         all mkmod-specific env vars mkmod sees (or would use).
+         -u is to be used only for debugging
   ---------------------------------------------------------
 '
 # v-- ARGS and ENV VARS
 
-    # MUST register all environment variables used by mkmod (Search for this linein VARS section)
-    
-    var_groups=( nvt_list whatis_list use_list modfiles_list prereq_list list_debug path_list )
+    # MUST register all environment variables used by mkmod (Search for this line in VARS section)
+    #      Tried to keep names short (even without MKMOD_ prefix, to keep it all simple)
+    #      Exceptions:  DEBUG LOGIN_SHELL. MKMOD used for single, mutually exclusive options (e.g. reset).
 
-       nvt_list=( NAME VER TOPDIR )
-    whatis_list=( WHATIS )
-       use_list=( USE_IN_SHELLRC )
-  modfiles_list=( PREFIX MODULEFILES_DIR GROUP_ACCESS GROUP )
-    prereq_list=( FAMILY COMPILER_PREREQ MPI_PREREQ AUTO_PREREQ PREREQ )
-      file_list=( HELP_FILE WHATIS_FILE MODULEFILE_FILE )
-     list_debug=( MKMOD_DEBUG )
-      path_list=(
-                  TOPDIR_PATH_LIST
-                  TOPDIR_LDPATH_LIST
-                  TOPDIR_MANPATH_LIST
-                  TOPDIR_PYTHONPATH_LIST
-                  PATH_LIST
-                  LDPATH_LIST
-                  MANPATH_LIST
-                  PYTHONPATH_LIST
-    )
+     mkmod_env_groups=( mkmod_base_list   mkmod_whatis_list mkmod_use_list   mkmod_modfiles_list)
+     mkmod_env_groups+=(mkmod_prereq_list mkmod_file_list   mkmod_debug_list mkmod_path_list    )
 
+     mkmod_env_numbered_groups=( ENV CMD ) 
+
+       mkmod_base_list=( NAME VER TOPDIR )
+     mkmod_whatis_list=( WHATIS )
+        mkmod_use_list=( USE_IN_SHELLRC STARTUP_FILE_SUFFIX MKMOD_LOGIN_SHELL)
+   mkmod_modfiles_list=( PREFIX MODULEFILES_DIR GROUP_ACCESS )
+     mkmod_prereq_list=( FAMILY COMPILER_PREREQ MPI_PREREQ AUTO_PREREQ PREREQ )
+       mkmod_file_list=( HELP_FILE WHATIS_FILE MODULEFILE_FILE )
+      mkmod_debug_list=( MKMOD_DEBUG )
+       mkmod_path_list=(
+                        TOPDIR_PATH_LIST
+                        TOPDIR_LDPATH_LIST
+                        TOPDIR_MANPATH_LIST
+                        TOPDIR_PYTHONPATH_LIST
+                        PATH_LIST
+                        LDPATH_LIST
+                        MANPATH_LIST
+                        PYTHONPATH_LIST
+                       )
+
+#    Arguments -- keep this very simple
 
   if [[ $1 == "-h" ]] || [[ $1 == "--help" ]]; then
      echo "$USAGE"
@@ -206,6 +244,33 @@ USAGE='
      exit 0
   fi
 
+  if [[ $1 == "-r" ]] || [[ $1 == "--reset" ]] || [[ $1 == "reset" ]] || [[ $MKMOD == reset ]]; then
+     read PARENT_SHELL <<<`cat /proc/$PPID/comm`       # get shell of process running this script
+  
+                                    SHELL_UNSET=unset       # default unset (sh, ksh, bash, zsh)
+     [[ $PARENT_SHELL ==  csh ]] && SHELL_UNSET=unsetenv    # csh and tcsh unset
+     [[ $PARENT_SHELL == tcsh ]] && SHELL_UNSET=unsetenv
+  
+     get_set_envs    envs_string                            # gets the set envs as a string
+     set_envs_list=($envs_string)                           # create bash array from string
+  
+     [[ $set_envs_list =~ [^[:space:]] ]] && echo "$SHELL_UNSET ${set_envs_list[@]}"
+     exit 0
+  fi
+                                    #unit_tests   Pick up unit tests here.
+  if [[ $1 == "-u" ]] || [[ $1 == "--unit_tests" ]]; then
+     shift
+     if [[ ! $1 =~ [^[:space:]] ]]; then
+        echo "  ->  ERROR: -u options requires at least one argument" 
+        echo "  ->         -u unit_test_name1-var1=val1,var2=val2,...,varn=valn[;unit_test_name2:var1=val1,var2=val2...]..."
+        echo "  ->         e.g. -u create_modulefile-FLAVOR=tmod:SITE=nersc;install_mod_use-LOGIN_SHELL=zsh:HOME=`pwd`"
+        exit 1
+     fi
+     IFS=';' read -r -a units_and_vars <<<$1
+  fi
+
+
+# ENVIRONMENT PROCESSING
 
   if [[ ! "$NAME"    =~ [^[:space:]]  ]] ||
      [[ ! "$VER"     =~ [^[:space:]]  ]] ||
@@ -216,7 +281,7 @@ USAGE='
   fi
 
   count=0
-  for var_group in ${var_groups[@]}; do 
+  for var_group in ${mkmod_env_groups[@]}; do 
     assigned=$(assigned_env_vars $var_group)
     if [[ ${assigned[@]} =~ [^[:space:]] ]]; then
       if [[ $count == 0 ]]; then
@@ -281,6 +346,26 @@ USAGE='
 
 # ^-- DETERMINE if using LMOD OR TMOD
 
+ 
+# v-- DETERMINE if know site (and suffix for startup scripts)
+
+   site_domains=(nersc.gov sdsc.edu tacc.utexas.edu cm.cluster)
+          sites=(nersc     sdsc     tacc            chpc      )
+  site_suffixes=(.ext      none     none            none      )
+
+  domain=`hostname -d`
+  SITE=unknown
+  for i in ${!site_domains[@]}; do
+    [[ $domain =~ ${site_domains[$i]} ]] && SITE=${sites[$i]} && SITE_index=$i
+  done
+
+
+# ^-- DETERMINE if know site (and suffix for startup scripts)
+# v-- Start Unit Test Here
+
+[[ ${units_and_vars[@]}    =~ "create_modulefile" ]] && set_unit_test_vars create_modulefile
+
+# e.g. create_modulefile-FLAVOR=tmod:SITE=nersc
 
 # v-- TOPDIR CHECK
 
@@ -875,14 +960,15 @@ USAGE='
                            #Find the loaded compilers
     comp_prereq=()
     loaded_compilers=()
-    comp_count=0
     IFS=':' read -r -a loaded_compilers <<< "$LOADEDMODULES"
     for loaded_compiler in  "${loaded_compilers[@]}"; do
        for compiler in  "${compilers[@]}"; do
-         #if [[ $loaded_compiler =~ "$compiler/" ]]; then
-          if [[ ${loaded_compiler%%/*} =~ "$compiler" ]]; then
-             comp_count=$(( comp_count + 1 ))
-             comp_prereq=($loaded_compiler)
+                                        # v Needed.  compiler module must begin with name
+                                        # v Cannot have Prgenv-intel, etc.
+                                        # | Maybe needs nothing at end?
+                                        # v           v  MAY PUT "$" here (bare, no quotes)
+          if [[ ${loaded_compiler%%/*} =~ ^${compiler} ]]; then
+             comp_prereq+=($loaded_compiler)
              [[ $MKMOD_DEBUG =~ [^[:space:]] ]] &&  
                 echo "Found compiler=$compiler  loaded_compiler=$loaded_compiler"
           fi
@@ -892,16 +978,18 @@ USAGE='
  
     if [[ ! "$COMPILER_PREREQ" =~ [^[:space:]]  ]]; then
  
-       if (( $comp_count > 1 )); then
+       if (( ${#comp_prereq[@]} > 1 )); then
           echo "  -> ERROR:  Houston, we have a problem."
-          echo "  ->         Found two compilers loaded at the same time:"
-          echo "  ->         ${loaded_compilers[@]}"
-          echo "  ->         If you need this export \$COMPILER_PREREQ with:"
-          echo "  ->         ${loaded_compilers[@]}"
+          echo "  ->         MKMOD thinks these are two or more compilers loaded at the same time:"
+          echo "  ->         ${comp_prereq[@]}"
+          echo "  ->         If this is correct, then set them in \$COMPILER_PREREQ with:"
+          echo "  ->            export COMPILER_PREREQ=\"${comp_prereq[@]}\""
+          echo "  ->         Otherwise, set the one that is a compiler in \$COMPILER_PREQ with:" 
+          echo "  ->            export COMPILER_PREREQ=\"<THE_compiler_module>\""
           exit
        fi
  
-       if (( $comp_count == 1 )); then
+       if (( ${#comp_prereq[@]} == 1 )); then
           module+=( "prereq ${comp_prereq[0]}" )
           echo "  -> Compiler prereq set to ${comp_prereq[0]} "
        fi
@@ -1298,7 +1386,7 @@ USAGE='
 # ^-- HELP MESSAGES
 
 
-
+if [[ $create_module_file == true ]]; then
 #############BEG--v      CREATE MODULEFILE
 
 # v-- CREATE MODULE
@@ -1419,8 +1507,11 @@ USAGE='
 
 
 #############END--^      CREATE MODULEFILE
+fi #create_module_file == true
+
+
   
-  
+if [[ $module_use_in_startup == true ]]; then  
 #############BEG--v      GROUP ACCESS REQUEST
   
   if [[ $GROUP_ACCESS =~ [^[:space:]] ]]; then
@@ -1462,7 +1553,8 @@ USAGE='
      echo "  -> Processing GROUP access for $group_type group $GROUP"
      echo "  -> Members of the group are: $group_users"
      echo ""
-   
+
+###  *********** TACC SPECIFIC *************  ###   
      do_chmod=yes
      if [[ $MODULEFILES_DIR =~  $STOCKYARD ]]; then
         CHANGE_DIRS=(  $STOCKYARD )
@@ -1508,7 +1600,7 @@ USAGE='
   
      fi
     #echo ""
-  fi
+  fi   #end GROUP
 
 #############END--^      GROUP ACCESS REQUEST
 
@@ -1561,121 +1653,311 @@ USAGE='
   echo "  -> As determined $ln_shell_by, $my_login_shell is assumed to be your login shell."
   [[ ! $MKMOD_LOGIN_SHELL =~ [^[:space:]] ]] &&
        echo "  ->    This can be changed by setting your shell in MKMOD_LOGIN_SHELL."
-  
+
+  #           Take off path (Next section only uses base name, bash, tcsh, etc.)  
+  LOGIN_SHELL=$(basename $LOGIN_SHELL) 
 #############END--^      CHECK FOR LOGIN SHELL
 
 
 #############BEG--v      MODULE USE IN SHELLRC
-#                                    Check for "module use $MODULEFILE_DIR" in SHELLRC
+#                                    Check for "module use $MODULEFILE_DIR" in STARTUPS SCRIPS
 #                                    Insert if not found, and logic to execute just once
 #                                    bash, csh, tcsh and zsh supported
 
   if [[ ! "$MKMOD_DEBUG"  =~ [^[:space:]]  ]] && [[ ! "$USE_IN_SHELLRC"  =~ none  ]] ; then
-     echo $'\n'"  -> MODULE USE in SHELLRC FILE:"
- 
-     [[ $my_login_shell =~ bash ]] && shellrc=.bashrc SHELLRC=$HOME/.bashrc  RC=BASHRC
-     [[ $my_login_shell =~  zsh ]] && shellrc=.zshenv SHELLRC=$HOME/.zshenv  RC=ZSHRC
-     [[ $my_login_shell =~  csh ]] && shellrc=.cshrc  SHELLRC=$HOME/.cshrc   RC=CSHRC
+     echo $'\n'"  -> MODULE USE in STARTUP FILE:"
 
-     echo "  -> Checking for \"module use $MODULEFILES_DIR\" in \$HOME/$shellrc."
+####### DETERMINE STARTUPS 
+    #[[ $my_login_shell =~ bash ]] && shellrc=.bashrc SHELLRC=$HOME/.bashrc  RC=BASHRC
+    #[[ $my_login_shell =~  zsh ]] && shellrc=.zshenv SHELLRC=$HOME/.zshenv  RC=ZSHRC
+    #[[ $my_login_shell =~  csh ]] && shellrc=.cshrc  SHELLRC=$HOME/.cshrc   RC=CSHRC
+#vvvvvvvvvvvvvv
+
+###############################################################################
+# tcsh RC files:  sources .tcshrc if present and quits; 
+#                 tries   .cshrc  next, and sources if present
+#    LOGIN file:  after sourcing RC, source .login
+
+#  csh RC files:  tries   .cshrc  next, and sources if present
+#    LOGIN file:  after sourcing RC, source .login
+#       CAREFUL:  csh may be linked to tcsh (if so, use tcsh login rules)
+
+# bash RC file:   .bashrc
+#   LOGIN files:  .bash_profile, .profile, .bash_login
+
+# zsh  RC files:  .zshenv   (always unless -f option)
+#   login files:  .zprofile (login shells)
+#      RC files:  .zshrc    (interactive shells, unless -f)
+#   login files:  .zlogin   (login shells)
+
+# https://kb.iu.edu/d/abdy
+#    
+
+   #source shell_utils
+
+# v-- Determine real login shell.  E.g. csh may point to tcsh, sh to bash, etc.
+########THIS GOES IN LOGIN_SHELL DETERMINATION SECTION
+    #    LOGIN_SHELL=bash             ###TAKEOUT
+    ORIG_LOGIN_SHELL=$LOGIN_SHELL
+
+    file=$(readlink -f `which $LOGIN_SHELL`)
+
+    [[ $LOGIN_SHELL == csh ]] && [[ $file =~ tcsh ]] && LOGIN_SHELL=tcsh && login_shell_status=linked
+    [[ $LOGIN_SHELL ==  sh ]] && [[ $file =~ bash ]] && LOGIN_SHELL=bash && login_shell_status=linked
+    [[ $LOGIN_SHELL == ksh ]] && [[ $file =~ bash ]] && LOGIN_SHELL=bash && login_shell_status=linked
+
+# ^-- Determine real shell.  E.g. csh may point to tcsh, sh to bash, etc.
+
+#^^^^^^^^^^^^^^^
+# v--  Determine if site has an assigned suffix
+
+     #SITE=NERSC     ###TAKEOUT
+     #SITE=unknown     ###TAKEOUT
+     #SITE_STARTUP_FILE_SUFFIX=""
  
-     new_shellrc_file=no
-     if [[ ! -e $SHELLRC ]]; then
-        echo "  -> Creating $SHELLRC for locating the \"module use \$MODULEFILE_DIR\" command."
-        touch $SHELLRC
-        new_shellrc_file=yes
+     if [[ $MKMOD_STARTUP_FILE_SUFFIX =~ [^[:space:]] ]]; then
+ 
+       STARTUP_FILE_SUFFIX=$MKMOD_STARTUP_FILE_SUFFIX
+ 
+     else
+ 
+       if [[ ! $STARTUP_FILE_SUFFIX =~ [^[:space:]] ]]; then
+          #  Determine if site has an assigned suffix for the profile (e.g. NERSC uses .ext)
+
+          [[ ! $SITE == unknown ]] && [[ ! ${site_suffixes[$SITE_index]} == none ]] && \
+               STARTUP_FILE_SUFFIX=${site_suffixes[$SITE_index]}
+ 
+          # Could check file extensions here for unknown site, but that is a bit too much.
+          # Let's let user supply MKMOD_STARTUP_FILE_SUFFIX if unknown site uses suffixes
+          # This is only done once, so Sal Goodman
+       fi
+ 
      fi
+# ^--  Determine if site has an assigned suffix
 
-     grep -e  "$MODULEFILES_DIR #MKMOD_KEEP_THIS_COMMENT" $SHELLRC >/dev/null
-  
-     if [[ $? == 0 ]]; then
 
-        echo "  -> Note: \"module use $MODULEFILES_DIR\" is already in \$HOME/$shellrc."
-        chx4="checking for "
+############################ BEGIN FROM SHELL
+    [[ ${units_and_vars[@]}    =~ "install_mod_use"   ]] && set_unit_test_vars install_mod_use
 
-     else  #beg do RC insert
+    [[ $STARTUP_FILE_SUFFIX == "none" ]] && STARTUP_FILE_SUFFIX=""
 
-        chx4=""
-        echo "  -> Note: Including \"module use $MODULEFILES_DIR\"  in \$HOME/$shellrc."
-        cp $SHELLRC                     ${SHELLRC}_mkmod_bu.$$
-  
-        echo $'\n'"  -> ********************************************************************"$'\n'
-        if [[ $new_shellrc_file == no ]]; then
-           echo $'\n'"  -> MAKING $shellrc BACKUP \$HOME/${shellrc}_mkmod_bu.$$."$'\n'
-           cp              $SHELLRC                      ${SHELLRC}_mkmod_bu.$$
-        fi
-        echo      "  -> DON'T FORGET TO LOGOUT and LOGIN to activate "module use " in $shellrc"
-        echo $'\n'"  -> ********************************************************************"$'\n'
-  
-#       v-- USE TACC sections of RC file
-        at_tacc=1
-        if [[ $my_login_shell == bash ]] ; then
-           grep -P '^\s*export\s+__'$RC'_SOURCED__=1' $SHELLRC > /dev/null
-           at_tacc=$?
-        fi
-        if [[ $my_login_shell =~ csh ]]; then
-          grep -P '^\s*setenv\s+__'$RC'_SOURCED__ 1' $SHELLRC > /dev/null
-          at_tacc=$?
-        fi
-#       ^-- SPECIAL FOR TACC
 
-        if [[ $at_tacc == 0 ]]; then   #This is a TACC Convention
-      #                                            Insert Module Use after SHELLRC_SOURCED|CSHRC_SOURED if it exists
-      #                                            include 4 spaces in front
-            [[ $my_login_shell == bash ]] && 
-               sed -i '/export __'$RC'_SOURCED__=1/a'"\ \ \ \ module use $MODULEFILES_DIR #MKMOD_KEEP_THIS_COMMENT" $SHELLRC
-            [[ $my_login_shell =~ csh ]]  &&
-               sed -i '/setenv __'$RC'_SOURCED__ 1/a'"\ \ \ \ module use $MODULEFILES_DIR #MKMOD_KEEP_THIS_COMMENT" $SHELLRC
-   
-        else  # non-TACC INSERT (or zsh at TACC)
-   
-          #                                            Otherwise, put the module use at the end
-          #                                            Make sure it is only sourced (used) once at login
-          #                                            and not in batch
-      
-          if [[ $my_login_shell == bash ]] || [[ $my_login_shell == zsh ]] ; then 
-             readarray message <<-EOF
-                :
-                :###############
-                :# SECTION MKMOD
-                :if [ -z "\$__MKMOD_${RC}_SOURCED__" -a "\$ENVIRONMENT" != BATCH ]; then
-                :  export   __MKMOD_${RC}_SOURCED__=1
-                :  module use $MODULEFILES_DIR #MKMOD_KEEP_THIS_COMMENT
-                :fi
-	EOF
-               #Above EOF must have a tab before it, and nothing else (NO SPACES, just a tab)!
-       
-                                   #lop off spaces up to and including ":", and print
-                shopt -s extglob
-                printf '%s' "${message[@]#+( ):}" >> $SHELLRC
-                shopt -u extglob
+    echo "  -> Using $LOGIN_SHELL as the login shell."
+    insert_use=no
+
+    case $LOGIN_SHELL in
+
+     bash )
+          bashrc=.bashrc
+
+          read -r RCFILE     bashrc_access <<<$(file_wr_permissions $bashrc $STARTUP_FILE_SUFFIX)
+          read -r LOGINFILE profile_access <<<$(which_login_profile         $STARTUP_FILE_SUFFIX)
+
+          has_use_in_LOGINFILE=no
+          has_use_in_RCFILE=no
+
+          [[ ! $bashrc_access  =~ [^[:space:]] ]] && print_no_startup_file BASH $bashrc$STARTUP_FILE_SUFFIX    $MODULEFILES_DIR && exit 1
+          [[ ! $profile_access =~ [^[:space:]] ]] && print_no_startup_file BASH ".bash_profile|.profile|.bash_login$STARTUP_FILE_SUFFIX" $MODULEFILES_DIR && exit 1
+
+          [[   $bashrc_access  == "read-only" ]] && print_startup_problem $RCFILE $bashrc_access           && exit 1
+          [[   $profile_access == "read-only" ]] && print_startup_problem $LOGINFILE $profile_access       && exit 1
+
+          grep -e  "$MODULEFILES_DIR #MKMOD_KEEP_THIS_COMMENT" $HOME/$RCFILE >/dev/null
+          if [[ $? == 0 ]]; then
+              has_use_in_RCFILE=yes
+              echo "  -> Note: Command \"module use $MODULEFILES_DIR\" is already in \$HOME/$RCFILE."
+              echo "  ->       No action take."
           fi
-     
-          if [[ $my_login_shell =~ csh ]] ; then
-             readarray message <<-EOF
-                :
-                :###############
-                :# SECTION MKMOD
-                :if (  ! \$?__MKMOD_${RC}_SOURCED__ && ! \$?ENVIRONMENT )  then
-                :  setenv   __MKMOD_${RC}_SOURCED__ 1
-                :  module use $MODULEFILES_DIR #MKMOD_KEEP_THIS_COMMENT
-                :endif
-	EOF
-               #Above EOF must have a tab before it, and nothing else (NO SPACES, just a tab)!
-     
-                                   #lop off spaces up to and including ":", and print
-                shopt -s extglob
-                printf '%s' "${message[@]#+( ):}" >> $SHELLRC
-                shopt -u extglob
-          fi 
-   
-        fi #end non-TACC INSER
 
-  
-     fi  #end of do RC insert
-     echo "  -> Finished with $chx4 \"module use\" setup in \$HOME/$shellrc"
-     echo ""
-  fi
+          grep -e  "$MODULEFILES_DIR #MKMOD_KEEP_THIS_COMMENT" $HOME/$LOGINFILE >/dev/null
+          if [[ $? == 0 ]]; then
+              has_use_in_LOGINFILE=yes
+              echo "  -> Note: Command \"module use $MODULEFILES_DIR\" is already in \$HOME/$LOGINFILE."
+              echo "  ->       No action take."
+          fi
+
+         #  OLD WAY to do inserts, profile sources .bashrc
+         #   #insert_source_bashrc_in_bash_login .bashrc   $LOGINFILE
+         #   #insert_use_in_bashrc               .bashrc   $LOGINFILE $MODULEFILES_DIR
+
+          if [[ ! $SITE == tacc ]]; then
+             if [[ $has_use_in_LOGINFILE == no ]]; then 
+
+                insert_module_use_in_bash_startupfile $LOGINFILE  $MODULEFILES_DIR
+
+                insert_use=yes
+                echo "  -> Inserted \"module use\" command in $LOGINFILE."
+             fi
+
+             if [[ $has_use_in_RCFILE    == no ]]; then
+
+                insert_module_use_in_bash_startupfile $RCFILE     $MODULEFILES_DIR
+
+                insert_use=yes
+                echo "  -> Inserted \"module use\" command in $RCFILE."
+             fi
+             FINISHED_SHELLS="$LOGINFILE and $RCFILE"
+          else
+
+##WHAT ABOUT BACKUP
+        #    At TACC $LOGINFILE always sources .bashrc file.
+        #    if __BASHRC_SOURCE__ conditional in .bashrc, insert after; otherwise do usual + other conditional
+
+             if [[ $has_use_in_RCFILE == no ]]; then
+                grep -P '^\s*export\s+__BASHRC_SOURCED__=1' $HOME/$RCFILE > /dev/null
+                if [[ $? == 0 ]]; then
+                   sed -i '/export *__BASHRC_SOURCED__=1/a'"\ \ \ \ module use $MODULEFILES_DIR #MKMOD_KEEP_THIS_COMMENT" $HOME/$RCFILE 
+                   insert_use=yes
+                else
+                   insert_module_use_in_bash_startupfile $RCFILE     $MODULEFILES_DIR  "-a \"\$ENVIRONMENT\" != BATCH"
+                   insert_use=yes
+                fi
+                echo "  -> Inserted \"module use\" command in TACC $RCFILE file."
+             fi
+             FINISHED_SHELLS="$RCFILE"
+          fi
+
+          ;;
+
+     csh )
+
+          cshrc=.cshrc
+          read -r RCFILE  cshrc_access <<<$(file_wr_permissions $cshrc  $STARTUP_FILE_SUFFIX)
+
+          has_use_in_RCFILE=no
+
+          [[ ! $cshrc_access  =~ [^[:space:]] ]] && print_no_startup_file CSH  $cshrc  $MODULEFILES_DIR &&  \
+                                                    RCFILE=$cshrc; touch $HOME/$RCFILE; chmod 700 $HOME/$RCFILE
+
+          [[   $cshrc_access == "read-only"   ]] && print_startup_problem $RCFILE $cshrc_access  &&exit 1
+
+          grep -e  "$MODULEFILES_DIR #MKMOD_KEEP_THIS_COMMENT" $HOME/$RCFILE >/dev/null
+          if [[ $? == 0 ]]; then
+              has_use_in_RCFILE=yes
+              echo "  -> Note: Command \"module use $MODULEFILES_DIR\" is already in \$HOME/$RCFILE."
+              echo "  ->       No action take."
+          fi
+
+          if [[ ! $SITE == tacc ]]; then
+             if [[ $has_use_in_RCFILE == no ]]; then
+                insert_module_use_in_csh_startupfile $RCFILE     $MODULEFILES_DIR
+                insert_use=yes
+                echo "  -> Inserted \"module use\" command in $RCFILE."
+             fi
+          else
+
+        #    @TACC: if __CSHRC_SOURCE__ conditional in .cshrc, insert after; otherwise do usual + other conditional
+
+             if [[ $has_use_in_RCFILE == no ]]; then
+                grep -P '^\s*setenv\s+__XSHRC_SOURCED__ *1' $HOME/$RCFILE > /dev/null
+                if [[ $? == 0 ]]; then
+                   sed -i '/setenv *__CSHRC_SOURCED__ *1/a'"\ \ \ \ module use $MODULEFILES_DIR #MKMOD_KEEP_THIS_COMMENT" $HOME/$RCFILE
+                   insert_use=yes
+                else
+                   insert_module_use_in_csh_startupfile $RCFILE     $MODULEFILES_DIR  "&& ! \$?ENVIRONMENT"
+                   insert_use=yes
+                fi
+                echo "  -> Inserted \"module use\" command in TACC $RCFILE file."
+             fi
+
+          fi
+          FINISHED_SHELLS=$RCFILE
+
+          ;;
+
+     tcsh )
+
+#CHECKHERE ** take uses .cshrc exclusively for tcsh:)
+
+          tcshrc=.tcshrc
+          read -r RCFILE tcshrc_access <<<$(which_tcsh_rc              $STARTUP_FILE_SUFFIX)
+
+          has_use_in_RCFILE=no
+
+          [[ ! $tcshrc_access  =~ [^[:space:]] ]] && print_no_startup_file TCSH  $tcshrc  $MODULEFILES_DIR && \
+                                                    RCFILE=$tcshrc; touch $HOME/$RCFILE; chmod 700 $HOME/$RCFILE
+
+          [[   $tcshrc_access == "read-only"   ]] && print_startup_problem      $RCFILE  $tcshrc_access   && exit 1
+
+          grep -e  "$MODULEFILES_DIR #MKMOD_KEEP_THIS_COMMENT" $HOME/$RCFILE >/dev/null
+          if [[ $? == 0 ]]; then
+              has_use_in_RCFILE=yes
+              echo "  -> Note: Command \"module use $MODULEFILES_DIR\" is already in \$HOME/$RCFILE."
+              echo "  ->       No action take."
+          fi
+
+          if [[ ! $SITE == tacc ]]; then
+             if [[ $has_use_in_RCFILE == no ]]; then
+                insert_module_use_in_csh_startupfile $RCFILE     $MODULEFILES_DIR
+                insert_use=yes
+                echo "  -> Inserted \"module use\" command in TACC $RCFILE."
+             fi
+          else
+
+             # @TACC: if __CSHRC_SOURCE__ conditional in .tcshr or .cshrc, insert immediately 
+             # after check for this variable; otherwise do usual + other conditional
+
+             if [[ $has_use_in_RCFILE == no ]]; then
+                grep -P '^\s*setenv\s+__CSHRC_SOURCED__ *1' $HOME/$RCFILE > /dev/null
+                if [[ $? == 0 ]]; then
+                   sed -i '/setenv *__CSHRC_SOURCED__ *1/a'"\ \ \ \ module use $MODULEFILES_DIR #MKMOD_KEEP_THIS_COMMENT" $HOME/$RCFILE
+                   echo "  -> Inserted \"module use\" command in $RCFILE."
+                else
+                   insert_module_use_in_csh_startupfile $RCFILE     $MODULEFILES_DIR  "&& ! \$?ENVIRONMENT"
+                fi
+                insert_use=yes
+                echo "  -> Inserted \"module use\" command in TACC $RCFILE."
+             fi
+
+          fi
+          FINISHED_SHELLS=$RCFILE
+
+          ;;
+
+     zsh )
+          read -r ENVFILE  zshenv_access <<<$(which_zsh_startup $STARTUP_FILE_SUFFIX)
+
+          has_use_in_ENVFILE=no
+
+          [[ ! $zshenv_access =~ [^[:space:]] ]] && print_no_startup_file ZSH  .zshenv  $MODULEFILES_DIR && \
+                                                    ENVFILE=.zshenv; touch $HOME/$ENVFILE; chmod 700 $HOME/$ENVFILE
+
+          [[   $zshenv_access == "read-only"  ]] && print_startup_problem      $ENVFILE  $zshenv_access   && exit 1
+
+          grep -e  "$MODULEFILES_DIR #MKMOD_KEEP_THIS_COMMENT" $HOME/$ENVFILE >/dev/null
+          if [[ $? == 0 ]]; then
+              has_use_in_ENVFILE=yes
+              echo "  -> Note: Command \"module use $MODULEFILES_DIR\" is already in \$HOME/$ENVFILE."
+          fi
+
+
+          if [[ $has_use_in_ENVFILE == no ]]; then
+             insert_module_use_in_zsh_startupfile $ENVFILE     $MODULEFILES_DIR
+             insert_use=yes
+             echo "  -> Inserted \"module use\" command in $ENVFILE."
+          fi
+
+          FINISHED_SHELLS=$ENVFILE
+          ;;
+
+     * )
+          echo "  -> ERROR:  Did not find (have) an appropriate login shell." 
+          echo "  ->         Found \"$LOGIN_SHELL\"."
+          echo "  ->         Expecting one of ${supported_shells[@]}."
+          echo "  ->         Set MKMOD_LOGIN_SHELL to one of the above, and execute mkmod again."
+          ;;
+    esac
+
+    if [[ $insert_use == yes ]]; then
+      echo "  -> **************************************************************************"$'\n'
+      echo "  -> DON'T FORGET TO LOGOUT and LOGIN to activate "module use " in $FINISHED_SHELLS startups."
+      echo $'\n'"  -> **************************************************************************"
+    fi
+
+    echo "  -> Finished with \"module use\" setup for $FINISHED_SHELLS shell."
+
+  fi    #DEBUG--don't do
+fi    #module_use_in_startup == true
 #############END--^      MODULE USE IN SHELLRC
 
 #https://stackoverflow.com/questions/6676568/how-to-print-in-a-tabular-format-in-tcl

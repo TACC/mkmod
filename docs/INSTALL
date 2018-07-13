@@ -1,5 +1,5 @@
 
         cd <to your app directory>
-        git clone https://github.com/milfeld/mkmod
+        git clone https://github.com/tacc/mkmod
         cd mkmod
         make

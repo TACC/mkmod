@@ -2,7 +2,7 @@
 INSTALL
 
         cd <to your app directory>
-        git clone https://github.com/milfeld/mkmod
+        git clone https://github.com/tacc/mkmod
         cd mkmod
         make
 
@@ -52,7 +52,7 @@ TRY IT YOURSELF
         cd mkmod/docs                 #this directory
 
         export NAME=mkmod
-        export VER=1.0                 #execute bin/mkmod -v for current ver.
+        export VER=2.0                 #execute bin/mkmod -v for current ver.
         export TOPDIR=$(dirname `pwd`) #TOPDIR=directory above this.
         export PREREQ=none             #we do this to avoid compiler/mpi
                                        #prerequisite--since this is a
@@ -70,4 +70,3 @@ TRY IT YOURSELF
                                        # Use export PREFIX="" for no "my_"
                                        # mkmod --help   for details
 
-      

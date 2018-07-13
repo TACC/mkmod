@@ -1,5 +1,11 @@
 
-function evaluate {
+# unfortunately: some sites are still using BASH 3, which doesn't allow hashes
+
+
+#  ##########################################################################
+#  v--  BEG EVALUATE VARIABLES
+
+   function evaluate {
 
      FILE=$1
      FILE_TYPE=$2
@@ -157,19 +163,581 @@ function evaluate {
      [[ $MKMOD_DEBUG =~ [^[:space:]] ]] && cat $EVALD_WHATIS_FILE
 
      rm -rf $SH_EVALD_FILE $RPM_EVALD_FILE /tmp/${FILE_TYPE}_sh_protected_$USER.$$
-}
+   }
+
+#  ^--  END EVALUATE VARIABLES
+#  ##########################################################################
 
 
-assigned_env_vars(){
-# For all Environment Variables in an array (name=$1[@]), 
-# return variables that have assigned values.
 
-   local list=$1[@]                          #get passed variable name
-   local assigned=()                         #set accumulator to blank
-   for var in "${!list}"; do                 #Use indirect reference
-      if [[ ${!var} =~ [^[:space:]] ]]; then
-        assigned+=($var)                     #put in accumulator
+
+#  ##########################################################################
+#  v--  BEG    DETERMINE ASSIGNED VARIABLES
+
+   assigned_env_vars(){
+   # For all Environment Variables in an array (name=$1[@]), 
+   # return variables that have assigned values.
+
+     local list=$1[@]                          #get passed variable name
+     local assigned=()                         #set accumulator to blank
+     for var in "${!list}"; do                 #Use indirect reference
+        if [[ ${!var} =~ [^[:space:]] ]]; then
+          assigned+=($var)                     #put in accumulator
+        fi
+     done
+     echo "${assigned[@]}"                    #return all variables with assignments
+   }
+
+#  v--  END    DETERMINE ASSIGNED VARIABLES
+#  ##########################################################################
+
+
+
+
+#  ##########################################################################
+#  v--  BEG    RESET ENVIRONMENT VARIABLES
+
+   get_set_envs(){
+   
+      # Syntax:   get_set_envs var_name
+      #
+      #           Creates a list of the set of environment variables used by MKMOD.
+      #           Returns the list in the array variable provided as the 1st argument.
+   
+      if [[ ${#} != 1 ]]; then
+         echo "  -> MKMOD ERROR:  get_set_envs requires a single variable argument to return env list."
+         echo "  ->               Found ${#} arguments: ${@}"
+         exit 1
       fi
-    done
-    echo "${assigned[@]}"                    #return all variables with assignments
+   
+      local __var=$1
+      local values
+   
+      for env_list in "${mkmod_env_groups[@]}"; do
+        env_vars=$(eval echo \"\${${env_list}[@]}\" )
+        #echo " LIST: $env_list"
+   
+        for var in ${env_vars[@]}; do
+          #echo "                       ELEMENT:$var"
+      
+          env_val=$( eval echo \"\$$var\" )
+      
+          if [[ $env_val =~ [^[:space:]] ]]; then
+            assigned+=($var)
+            values+=($env_val)
+          fi
+      
+        done
+      
+      done
+
+      # GROUP is special,  this is set in CSH, but no others.
+      read PARENT_SHELL <<<`cat /proc/$PPID/comm`                    #csh-type shells set GROUP
+      [[ !  $PARENT_SHELL =~ csh ]] && mkmod_modfiles_list+=(GROUP)  #add GROUP to non-csh type shells
+   
+      #Now check for variables such as ENV1, ENV2, ..., ENV30 and CMD1, CMD2,...,CMD30, etc.
+   
+      for num_var in "${mkmod_env_numbered_groups[@]}"; do
+        for i in `seq 1 2`; do
+          env_val=$( eval echo \"\$$num_var$i\" )
+          if [[ $env_val =~ [^[:space:]] ]]; then
+            assigned+=($num_var$i)
+            values+=($env_val)
+          fi
+        done
+      done
+   
+      #echo "INSIDE get_set_envs: ${assigned[@]}"
+      eval $__var="'${assigned[@]}'"
+      
+   }
+
+#  ^--  END    RESET ENVIRONMENT VARIABLES
+#  ##########################################################################
+
+
+#  ##########################################################################
+#  v--  BEG    UNIT TEST
+
+   set_unit_test_vars(){
+   
+   #  Gets and sets the environment variables  
+   #  unit tests and envir vars are set on the command line with the -u option.
+   #   name and env vars have the form:  <unit_test_name>-<var_name1>=<value1>:<var_name2>=<value2>:<var_name3>=<value3>:...
+   #   If multiple unit tests are to be performed, the -u option's argument separates units tests with a semicolon (;):
+   #   -u <test_name1>-<var1>=<val1>:...:<varan>=<valan>;<test_name2>-<vara>=<vala>:<varb>=<valb>:...:<vars>=><vals>
+   #                                                    -
+   #   The different unit tests are places in the units_and_vars array; one unit test for each element.
+   #   The varialbe key-word, value pairs are stripped out below, and set as environment variables.
+   
+      if [[  ! $1 =~ [^[:space:]] ]] ; then
+         echo "  -> UNIT TEST ERROR:  unit test name required for set_unit_test_vars function"
+         exit 1
+      fi
+   
+      local unit_test_name
+      unit_test_name=$1
+   
+      # Get Unit test and set environment variables
+      for unit_and_vars in ${units_and_vars[@]}; do
+        if [[ $unit_and_vars =~ $unit_test_name ]]; then
+            IFS='@' read -r  unit var_set  <<<$unit_and_vars
+            [[ ! $var_set  =~ [^[:space:]]  ]] && var_set=none
+       #   #echo UNIT:$unit VARS:$var_set
+            units+=($unit)
+            unit_var_sets+=($unit_var_sets)
+            # Now set variable:
+            # Form  a=1:b=2:c=3
+           
+            if [[ $var_set  != none  ]]; then
+               varvals=()
+               IFS=':' read -r -a varvals <<<$var_set
+               for varval in ${varvals[@]}; do
+       #         #echo VARVAL: $varval
+                  IFS='=' read -r VAR VAL <<< $varval
+                  VAR_name=$VAR
+                  eval export $VAR=\$VAL
+       #         #env | grep $VAR>> SEE.vars   # use this to make usre vars are set!
+               done
+            fi
+        fi
+      done
+   }
+
+#  ^--  END    UNIT TEST
+#  ##########################################################################
+# ***************************************************************************
+#                vvvv   MODULE USE "SHELL" UTILS   vvvv
+# ***************************************************************************
+#  ##########################################################################
+
+
+#  ##########################################################################
+#  v--  BEG    SHELL UTILS
+
+
+# unfortunately: some sites are still using BASH 3, which doesn't allow hashes
+# will not use hashes
+
+   which_login_profile(){
+
+   # Determines which interactive login script to use for bash
+   # Returns the "profile" to be used, and read-only or write status
+   # if $1 exists (e.g.  .usr), it will be used an an suffix.  E.g. as in ./.zshenv.usr
+   #
+   #https://www.gnu.org/software/bash/manual/html_node/Bash-Startup-Files.html
+   #http://wiki.bash-hackers.org/syntax/shellvars
+   #http://wiki.bash-hackers.org/commands/builtin/read
+   #https://www.gnu.org/software/bash/manual/html_node/Bash-Startup-Files.html
+
+   # returns first existing readable file: .bash_profile, .profile, .bash_login; and its permissions
+
+   local ext=""
+     [[ $1 =~ [^[:space:]] ]] && ext=$1
+  
+     local bash_logins=(.bash_profile .profile .bash_login)
+     
+     for shell in ${bash_logins[@]}; do
+        if [[ -e    $HOME/$shell${ext} ]] && [[ -r $HOME/$shell${ext} ]]; then
+  
+           if [[ -w $HOME/$shell${ext} ]] ; then
+              echo       "$shell${ext} write"
+           else
+              echo       "$shell${ext} read-only" 
+           fi
+           break
+        fi
+  
+     done
+   }   
+
+   file_wr_permissions(){
+
+   # Assumes file should exist and be readable
+   # returns permission "write" if it has writeable permissions, too
+   # or "read-only" if it is only readable.
+   # Allow extension (suffix)
+
+   # Returns null if not existant or non-readable.
+
+     local ext=""
+     [[ $2 =~ [^[:space:]] ]] && ext=$2
+  
+     local shell=$1
+   
+     if [[ -e    $HOME/$shell${ext} ]] && [[ -r $HOME/$shell${ext} ]]; then
+   
+        if [[ -w $HOME/$shell${ext} ]] ; then
+           echo       "$shell${ext} write"
+        else
+           echo       "$shell${ext} read-only" 
+        fi
+     fi
+ 
+   }
+
+   which_tcsh_rc(){
+
+   # returns first existing readable file: .tcshrc or .cshrc; and its permissions
+
+     local ext=""
+     [[ $1 =~ [^[:space:]] ]] && ext=$1
+  
+     local tcsh_rcs=(.tcshrc .cshrc)
+  
+     for rc in ${tcsh_rcs[@]}; do
+  
+        if [[ -e    $HOME/$rc${ext} ]] && [[ -r $HOME/$rc${ext} ]]; then
+  
+           if [[ -w $HOME/$rc${ext} ]] ; then
+              echo       "$rc${ext} write"
+           else
+              echo       "$rc${ext} read-only" 
+           fi
+           break
+        fi
+  
+     done
+   }
+
+   print_startup_problem(){
+
+     local startup_file=$1 startup_file_access=$2 
+
+              echo "  -> PROBLEM: Access permission for \$HOME/$startup_file is $startup_file_access."
+              echo "  ->          Hence mkmod can NOT insert instructions for modules"
+              echo "  ->          to use the modulefiles directory at login."
+              echo ""
+              echo "  ->          The read-only access usually means that the site wants you to use a"
+              echo "  ->          SUFFIXED version of the file for locally modifying your environment"
+              echo "  ->          1.) Please select an appropriate suffix (include dots and underscores)"
+              echo "  ->          2.) Set it in the MKMOD_STARTUP_FILE_SUFFIX."
+              echo "  ->          3.) re-run mkmod"
+              echo ""
+              echo "  ->          Here is a listing of all \$HOME/$startup_file* files that might show the suffix:"
+              my_pwd=`pwd`
+              cd; ls -1 $startup_file* | xargs printf "  ->                %-20s\n"
+              cd $my_pwd
+   }
+
+#startup_file=.profile
+#startup_file_access=read-only
+
+
+#print_startup_problem $startup_file $startup_file_access 
+
+
+#################################################################################
+
+#          if [[ $my_login_shell == bash ]] || [[ $my_login_shell == zsh ]] ; then
+#  PRINT BACKUP notification with FILE NAME
+
+   insert_module_use_in_bash_startupfile(){
+
+   # Insert "module use $MODULEFILE_DIR" at end of $MY_FILE startup file.
+   # $1 is the BASH STARTUP FILE
+   # $2 is the MODULEFILES DIRECTORY
+   #   __MKMOD_MODULE_PATH_INSERTED__ is a guard to only permit execution once
+
+        local MY_STARTUP_FILE=$1
+        local MY_MODULEFILES_DIR=$2
+        local OTHER_CONDITIONS=""
+        [[ $3 =~ [^[:space:]] ]] && OTHER_CONDITIONS=$3
+
+        readarray message <<-EOF
+                :
+                :###############
+                :# SECTION MKMOD: Execution guaranteed once by __MKMOD... var
+                :
+                :  if [ -z "\$__MKMOD_MODULE_PATH_INSERTED__" $OTHER_CONDITIONS ]; then
+                :    export  __MKMOD_MODULE_PATH_INSERTED__=1
+                :
+                :    module use $MY_MODULEFILES_DIR #MKMOD_KEEP_THIS_COMMENT
+                :
+                :  fi
+                :###############
+                :
+	EOF
+
+       #echo $'\n'"  -> MAKING ${MY_STARTUP_FILE} BACKUP \$HOME/${MY_STARTUP_FILE}_mkmod_bu.$$."
+        echo      "  -> MAKING ${MY_STARTUP_FILE} BACKUP \$HOME/${MY_STARTUP_FILE}_mkmod_bu.$$."
+        cp  $HOME/${MY_STARTUP_FILE} $HOME/${MY_STARTUP_FILE}_mkmod_bu.$$
+
+        #lop off spaces up to and including ":", and print
+        shopt -s extglob
+        printf '%s' "${message[@]#+( ):}" >> $HOME/$MY_STARTUP_FILE
+        shopt -u extglob
+   }
+
+
+   insert_use_in_bashrc(){
+
+   # This function inserts the "module use <modulefiles directory>" command at the
+   # at the beginning of the .bashrc<ext>  file.  It is conditionally executed.
+ 
+   #   __MKMOD_MODULE_PATH_INSERTED__ is a guard to allow execution only once
+ 
+   #   The insertion (logic) MUST REMAIN at the beginning of the file because
+   #   the .bashrc<ext> file is source by the BASH LOGIN file with a 
+   #   "source .bashrc MKMOD" command.
+ 
+   #   The conditional at end exits the sourcing if sourced by the BASH LOGIN file
+   #   avoiding execution of any other part of the .bashrc file.  This allows the
+   #   the MKMOD entry in the  BASH LOGIN file to source the .bashrc only for 
+   #   executing the "module use <modulefiles directory>
+   #   without intefering with the system/user sourcing mechanism by LOGIN Startup files.
+ 
+   #   This is very generic, and actually could be accomplished  by just
+   #   executing "module use <modulefiles directory>" in the BASH LOGIN file and
+   #   setting __MKMOD_MODULE_FILE_INSERTED__, but that means having the command
+   #   in two places.
+ 
+   #   ARGUMENTS:
+   #     $1 The BASH RC_FILE, just .bashrc<ext>  ext is a site extension, like .ext
+   #     $2 The BASH LOGIN_FILE  One of .profile_bash, .profile, .login_bash + ext
+   #     $3 The MODULEFILES DIRECTORY
+
+        local MY_RC_FILE=$1
+        local MY_LOGIN_FILE=$2
+        local MY_MODULEFILES_DIR=$3
+
+        readarray message <<-EOF
+                :
+                :###############
+                :# SECTION MKMOD  MUST REMAIN FIRST in file.
+                :#                Execution once guaranteed by MKMOD_MODULE_PATH_INSERTED
+                :#                If sourced by MKMOD insert in $MY_LOGIN_FILE (with MKMOD arg), exit.
+                :
+                :  if [ -z "\$__MKMOD_MODULE_PATH_INSERTED__" ]; then
+                :    export  __MKMOD_MODULE_PATH_INSERTED__=1
+                :    module use $MODULEFILES_DIR #MKMOD_KEEP_THIS_COMMENT
+                :
+                :    [[ \$1 == MKMOD ]] && [[ \$0 =~ $MY_LOGIN_FILE ]] && exit
+                :  fi
+                :###############
+                :
+	EOF
+        #EOF must have a tab before it, and nothing else (NO SPACES, just a tab)!
+
+        if [[ ! ${MY_RC_FILE} =~ [^[:space:]] ]]; then
+           echo "  -> ERROR: Danger Will Robinson:  aborting attempt to:"
+           echo "     mv  $HOME/${MY_RC_FILE} $HOME/${MY_RC_FILE}_mkmod_bu.$$"
+           echo "     Aborting!"
+           exit 9
+        fi
+
+       #echo $'\n'"  -> MAKING ${MY_RC_FILE} BACKUP \$HOME/${MY_RC_FILE}_mkmod_bu.$$."$'\n'
+        echo "  -> MAKING ${MY_RC_FILE} BACKUP \$HOME/${MY_RC_FILE}_mkmod_bu.$$."
+        mv  $HOME/${MY_RC_FILE} $HOME/${MY_RC_FILE}_mkmod_bu.$$
+
+        #lop off spaces up to and including ":", and print
+        shopt -s extglob
+        printf '%s' "${message[@]#+( ):}"    > $HOME/$MY_RC_FILE
+        shopt -u extglob
+
+        cat $HOME/${MY_RC_FILE}_mkmod_bu.$$ >> $HOME/$MY_RC_FILE
+   }
+
+
+   insert_source_bashrc_in_bash_login(){
+
+   # Insert "source BASH RC_FILE" in Bash Login File
+   # $1 is the BASH RC    FILE
+   # $2 is the BASH LOGIN FILE
+
+        local MY_RC_FILE=$1
+        local MY_LOGIN_FILE=$2
+
+        readarray message <<-EOF
+                :
+                :###############
+                :# SECTION MKMOD:  source .bashrc with MKMOD argument if .bashrc exists
+                :#                 Only MKMOD SECTION in .bashrc is executed by this source .
+                :#                 MKMOD is at top and exits if MKMOD arg present
+                :
+                :  if [ -z  $HOME/$MY_RC_FILE ]; then
+                :    source $HOME/$MY_RC_FILE MKMOD #MKMOD_KEEP_THIS_COMMENT
+                :  fi
+                :###############
+                :
+	EOF
+
+       #echo $'\n'"  -> MAKING ${MY_LOGIN_FILE} BACKUP \$HOME/${MY_LOGIN_FILE}_mkmod_bu.$$."$'\n'
+        echo "  -> MAKING ${MY_LOGIN_FILE} BACKUP \$HOME/${MY_LOGIN_FILE}_mkmod_bu.$$."
+        cp  $HOME/${MY_LOGIN_FILE} $HOME/${MY_LOGIN_FILE}_mkmod_bu.$$
+
+        #lop off spaces up to and including ":", and print
+        shopt -s extglob
+        printf '%s' "${message[@]#+( ):}" >> $HOME/$MY_LOGIN_FILE
+        shopt -u extglob
+   }
+
+
+
+   insert_module_use_in_csh_startupfile(){
+
+   # Insert "module use $MODULEFILE_DIR" at end of $MY_FILE startup file.
+   # $1 is the CSH-TYPE STARTUP FILE
+   # $2 is the MODULEFILES DIRECTORY
+   #   __MKMOD_MODULE_PATH_INSERTED__ is a guard to only permit execution once
+
+        local MY_STARTUP_FILE=$1
+        local MY_MODULEFILES_DIR=$2
+        local OTHER_CONDITIONS=""
+        [[ $3 =~ [^[:space:]] ]] && OTHER_CONDITIONS=$3
+
+             readarray message <<-EOF
+                :
+                :###############
+                :# SECTION MKMOD: Execution guaranteed once by __MKMOD... var
+                :
+                :if (  ! \$?__MKMOD_MODULE_PATH_INSERTED__ $OTHER_CONDITIONS )  then
+                :  setenv   __MKMOD_MODULE_PATH_INSERTED__ 1
+                :  module use $MODULEFILES_DIR #MKMOD_KEEP_THIS_COMMENT
+                :endif
+	EOF
+
+       #echo $'\n'"  -> MAKING ${MY_STARTUP_FILE} BACKUP \$HOME/${MY_STARTUP_FILE}_mkmod_bu.$$."$'\n'
+        echo "  -> MAKING ${MY_STARTUP_FILE} BACKUP \$HOME/${MY_STARTUP_FILE}_mkmod_bu.$$."
+        cp  $HOME/${MY_STARTUP_FILE} $HOME/${MY_STARTUP_FILE}_mkmod_bu.$$
+
+        #lop off spaces up to and including ":", and print
+        shopt -s extglob
+        printf '%s' "${message[@]#+( ):}" >> $HOME/$MY_STARTUP_FILE
+        shopt -u extglob
+   }
+
+   insert_module_use_in_zsh_startupfile(){
+
+  # Insert "module use $MODULEFILE_DIR" at end of $MY_FILE startup file.
+  # $1 is the ZSH-TYPE STARTUP FILE
+  # $2 is the MODULEFILES DIRECTORY
+  #   __MKMOD_MODULE_PATH_INSERTED__ is a guard to only permit execution once
+
+        local MY_STARTUP_FILE=$1
+        local MY_MODULEFILES_DIR=$2
+
+        readarray message <<-EOF
+                :
+                :###############
+                :# SECTION MKMOD: Execution guaranteed once by __MKMOD... var
+                :
+                :  if [ -z "\$__MKMOD_MODULE_PATH_INSERTED__" ]; then
+                :    export  __MKMOD_MODULE_PATH_INSERTED__=1
+                :
+                :    module use $MY_MODULEFILES_DIR #MKMOD_KEEP_THIS_COMMENT
+                :
+                :  fi
+                :###############
+                :
+	EOF
+
+       #echo $'\n'"  -> MAKING ${MY_STARTUP_FILE} BACKUP \$HOME/${MY_STARTUP_FILE}_mkmod_bu.$$."$'\n'
+        echo "  -> MAKING ${MY_STARTUP_FILE} BACKUP \$HOME/${MY_STARTUP_FILE}_mkmod_bu.$$."
+        cp  $HOME/${MY_STARTUP_FILE} $HOME/${MY_STARTUP_FILE}_mkmod_bu.$$
+
+        #lop off spaces up to and including ":", and print
+        shopt -s extglob
+        printf '%s' "${message[@]#+( ):}" >> $HOME/$MY_STARTUP_FILE
+        shopt -u extglob
 }
+
+   print_no_startup_file(){
+
+   # Prints information about finding no access or existence of a startup file.
+   # mkmod will try using it. User is advised to look for possible extension use.
+   # TEST: print_no_startup_file BASH .profile $HOME/modulefiles
+
+   # The shell, startup file and modulefiles directory are passed in $1, $2, and $3:
+
+     local shell=$1
+     local startup_file=$2
+     local modulefiles_dir=$3
+
+              echo "  -> PROBLEM: The $shell startup file \$HOME/$startup_file was not found to exist and/or have"
+              echo "  ->          read access. Hence, the usual mechanisms of sourcing this file by the system may"
+              echo "  ->          not be set up on this system."
+              echo "  ->          (e.g. by files like /etc/.profile, /etc/profile.d/bashrc, /etc/csh.login, etc.)"
+              echo ""
+              echo "  ->          Nevertheless, mkmod will create a $HOME/$startup_file file, and"
+              echo "  ->          include statements in it to execute \"module use $modulefiles_dir\"."
+
+              echo "  ->          Here is a listing of \$HOME/$startup_file* files (list may be empty):"
+              echo ""
+              my_pwd=`pwd`
+             #cd; ls -o1 $startup_file* | xargs printf "  ->         %-80s\n"
+              #                         error to /dev/null removes error message for no files
+              cd; ls -o1 $startup_file* 2>/dev/null| sed  -e 's/^/                /'
+              cd $my_pwd
+              echo ""
+              echo "  ->          Files with _mkmod_bu.##### suffix are mkmod backup files."
+              echo ""
+              echo "  ->          If \$HOME/$startup_file does not have a suffix:"
+              echo "  ->          Possible the system uses suffixed startup files."
+              echo "  ->          Look for files with a suffix and|or refer to the system's User Guide document."
+              echo "  ->          If required, set MMKMOD_STARTUP_FILE_SUFFIX to the suffix name (include the dot, dash, etc.),"
+              echo "  ->          remove \$HOME/$startup_file (created after the listing above), and rerun mkmod."
+
+              echo "  ->          If \$HOME/$startup_file looks like a valid startup file:"
+              echo "  ->          Logout and then log back in to see if \$HOME/modulefiles is in MODULEPATH."
+              echo "  ->          If it is, all is fine.  If not, try to determine the startups files"
+              echo "  ->          from the list above or through the output displayed by the command below."
+              echo "  ->          and set MKMOD_STARTUP_FILE_SUFFIX appropriately."
+              echo ""
+              echo "  ->          To see the files accessed during a shell startup, execute the following command:"
+              echo "  ->          echo exit | strace $SHELL -li |& less | grep '^open' "$'\n'
+   }
+
+   #print_no_startup_file BASH .profile $HOME/modulefiles
+
+   which_zsh_startup(){
+
+   # Determines which script to use for zsh (.zshenv or .zshrc)
+   # 
+
+   # if $1 exists (e.g.  .usr), it will be used an an suffix.  E.g. as in ./.zshenv.usr
+   #
+
+   # STARTUPS for zsh
+   # .zshenv, .zprofile, .zshrc, .zlogin
+   # First time execution will insist on touching .zshrc if none exist
+   # Execute: /bin/zsh -o SOURCE_TRACE (to see trace of file sourcing)
+   # to find which startupfiles are executed!
+   # 
+   # LOGIN:
+   #              files present
+   # Tests:               .zshrc  --> executes rc
+   # Tests:               .zshenv --> executes rcenv
+   # Tests:   .zprofile & .zshrc  --> executes profile then rc
+   # Tests:   .zprofile & .zshenv --> executes env and then profile
+   # Tests:   .zprofile & .zshenv  .zshrc --> executes env then  profile and finally rc
+   # 
+   # ONLY NECESSARY TO INSERT module use <modulefiles_dir> IN .zshrc or .zshenv
+   # if .zshrc use that, otherwise try .zshenv.  Otherwise return NULL
+   # 
+   # If both .zshrc and .zshenv, best to put in .zshrc so mkmod modulefiles director 
+   # is put first in the MODULEPATH.
+
+   # returns first existing, readable file: .zshrc or .zshenv and its permissions
+
+    local ext=""
+    [[ $1 =~ [^[:space:]] ]] && ext=$1
+ 
+    local startup_files=( .zshrc .zshenv )
+ 
+    for shell in ${startup_files[@]}; do
+       if [[ -e    $HOME/$shell${ext} ]] && [[ -r $HOME/$shell${ext} ]]; then
+ 
+          if [[ -w $HOME/$shell${ext} ]] ; then
+             echo       "$shell${ext} write"
+          else
+             echo       "$shell${ext} read-only" 
+          fi
+          break
+       fi
+ 
+    done
+   }
+
+#  ^--  END    SHELL UTILS
+#  ##########################################################################
