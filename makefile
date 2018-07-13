@@ -24,5 +24,5 @@ ifdef INSTALL_DIR
 	cp -r docs     $(INSTALL_DIR)/mkmod
 	env NAME=mkmod VER=$(VER) TOPDIR=$(INSTALL_DIR)/mkmod AUTO_PREREQ=none bin/mkmod
 else
-	@ echo VER:$(VER)
+	env NAME=mkmod VER=$(VER) TOPDIR=`pwd` AUTO_PREREQ=none bin/mkmod
 endif
