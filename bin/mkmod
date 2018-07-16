@@ -185,6 +185,7 @@ EOF
 #   
 # TODO -- allow just module creation or just module use insertion
 # TODO -- still has some TACCism that should be generalized (e.g. $WORK directory)
+# TODO -- find "doc" in TOPDIR/share/doc (and man)
 #tmod https://github.com/cea-hpc/modules/blob/master/doc/paper/MC2_whitney_paper.pdf
 
 #                       Lmod and and Tmod divisions markers (mv this to section later)
@@ -262,8 +263,8 @@ USAGE='
      shift
      if [[ ! $1 =~ [^[:space:]] ]]; then
         echo "  ->  ERROR: -u options requires at least one argument" 
-        echo "  ->         -u unit_test_name1-var1=val1,var2=val2,...,varn=valn[;unit_test_name2:var1=val1,var2=val2...]..."
-        echo "  ->         e.g. -u create_modulefile-FLAVOR=tmod:SITE=nersc;install_mod_use-LOGIN_SHELL=zsh:HOME=`pwd`"
+        echo "  ->         -u unit_test_name1@var1=val1,var2=val2,...,varn=valn[;unit_test_name2@var1=val1,var2=val2...]..."
+        echo "  ->         e.g. -u create_modulefile@FLAVOR=tmod:SITE=nersc;install_mod_use@LOGIN_SHELL=zsh:HOME=`pwd`"
         exit 1
      fi
      IFS=';' read -r -a units_and_vars <<<$1
@@ -302,7 +303,7 @@ USAGE='
 
                             # look for these compilers (names) as loaded compiler modules
   compilers=(intel gcc llvm clang open64 pgi ibmcmp)
-  MPIs=(impi mvapich2 openmpi mpich)
+  MPIs=(intelmpi impi mvapich2 openmpi mpich)
 
 # v-- DETERMINE if using LMOD OR TMOD
 
@@ -967,7 +968,8 @@ USAGE='
                                         # v Cannot have Prgenv-intel, etc.
                                         # | Maybe needs nothing at end?
                                         # v           v  MAY PUT "$" here (bare, no quotes)
-          if [[ ${loaded_compiler%%/*} =~ ^${compiler} ]]; then
+          if [[   ${loaded_compiler%%/*} =~ ^${compiler} ]] &&
+             [[ ! ${loaded_compiler%%/*} =~ mpi ]]; then    #Uh sites used: intel and intelmpi
              comp_prereq+=($loaded_compiler)
              [[ $MKMOD_DEBUG =~ [^[:space:]] ]] &&  
                 echo "Found compiler=$compiler  loaded_compiler=$loaded_compiler"
