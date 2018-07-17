@@ -44,9 +44,11 @@ TRY IT YOURSELF
 
   When you executed "make" (above) in the mkmod directory a 
   modulefile was automatically created for mkmod (with the commands below).
-  You can try this "by hand" if you first removing the makefile.
+  You can try this "by hand" by first removing $HOME/modulefiles/my_mkmod
+  if you already executed make.
+  
 
-     FIRST:  execute: rm -rf $HOME/modulefiles/my_mkmod
+     FIRST:  execute: rm -rf $HOME/modulefiles/my_mkmod  #if you already executed make
 
   Build your own modulefile for mkmod
         cd mkmod/docs                 #this directory
