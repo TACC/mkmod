@@ -20,7 +20,7 @@ DIR=/opt/apps/intel18/impi18_0/boost/1.66
 export \
    WHATIS="    Name: boost "
    WHATIS+=" @ Version: 1.66"
-   WHATIS+=" @ Category Lmod/Modulefiles" 
+   WHATIS+=" @ Category: Lmod/Modulefiles" 
    WHATIS+=" @ Keywords: System, Library, C++ "
    WHATIS+=" @ URL: http://www.boost.org"
    WHATIS+=" @ Description: Boost provides free peer-reviewed portable C++ source libraries."
