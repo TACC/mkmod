@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# Real World Example with mkmod
+# Make sure you have made a modulefile for mkmod and have loaded it.
+# (See docs/INSTALL)
+#  
+
+# Features:  uses module help-message file (provided)
+#            NOTE:  it uses the $VER variable inside module_help_message
+
+#   Instructions from build_remora specify (cut and paste) commands
+#   to set the VER, NAME and TOPDIR environment variables for this script.
+
+                                   #Set the directory for modules_help file.
+export MKMOD_HELP=$(dirname `which mkmod`)/../examples/remora/modules_help
+                                   #If modules_help were in the remora directory
+                                   #mkmod would find and use it automatically.
+
+         export PREFIX=""                   # forget using my_remora-- just use "remora"
+                                            # for module name
+         export HELP_FILE=$MKMOD_HELP       #help file included in module help
+
+         export ENV1="REMORA_BIN=$TOPDIR/bin"   #additional variable set 
+         export ENV2="REMORA_VERBOSE=0"         #set in modulefile
+         export ENV3="REMORA_MODE=FULL"
+         export ENV4="REMORA_PERIOD=10"
+
+         mkmod
+
+#HELP_FILE taken from TACC's remora module.
+#Note: Possibly remora developers will support mkmod and will
+#      provide a modules_help message file  in their distro.
+#      provide a modules_whatis info file in their distro.
