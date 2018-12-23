@@ -4,6 +4,7 @@ INSTALL
         cd <to your app directory>
         git clone https://github.com/tacc/mkmod
         cd mkmod
+        # default install is $PWD; set INSTALL_DIR if you have an apps dir 
         make
 
 GENERAL INFO
