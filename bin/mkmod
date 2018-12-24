@@ -5,7 +5,7 @@ module_use_in_startup=true  #set to false to NOT execute module use insertion (i
 
 # MUST register all environment variables used by mkmod (Search for this line in VARS section)
 
-MKMOD_VERSION=2.0  # VERSION SOURCE makefile extracts version from this line
+MKMOD_VERSION=2.1  # VERSION SOURCE makefile extracts version from this line
                    # DO NOT MODIFY format "MKMOD_version=<ver>  # VERSION SOURCE"
 
 if [[ $USER == "milfeld" ]]; then
@@ -87,7 +87,7 @@ MKMOD_HELP=$(sed 's/^#//' <<'EOF'
 #                                              var to set path and name for your own help file.
 #                                              Set to "none" to avoid searching for file. 
 #      11.) WHATIS_FILE              (default= finds whatis_help file relative to $TOPDIR, use this 
-#                                              var to set path and name for your own help file.
+#                                              var to set path and name for your own whatis file.
 #                                              Set to "none" to avoid searching for file. 
 #      12.) MODULEFILE_FILE          (default= finds modulefile.lua|tcl file relative to $TOPDIR, use
 #                                              this var to set path and name for your own help file.
@@ -98,17 +98,17 @@ MKMOD_HELP=$(sed 's/^#//' <<'EOF'
 #  
 #       PATHS -- RELATIVE to TOPDIR
 #  
-#           TOPDIR_PATH_LIST         (e.g. ="x86_64/bin")
-#           TOPDIR_LDPATH_LIST       (e.g. ="x86_64/libraries/linpack")
-#           TOPDIR_MANPATH_LIST      (e.g. ="man linpack/man otherpkg/man")
-#           TOPDIR_PYTHONPATH_LIST   (e.g. ="share/pkgs/python")
+#           TOPDIR_PATH_LIST         (e.g. ="x86_64/bin:share/bin")        # colon separated list
+#           TOPDIR_LDPATH_LIST       (e.g. ="x86_64/libraries/linpack")    # "
+#           TOPDIR_MANPATH_LIST      (e.g. ="man:linpack/man otherpkg/man")# "
+#           TOPDIR_PYTHONPATH_LIST   (e.g. ="share/pkgs/python")           # "
 #  
 #       PATHS -- FULL
 #  
-#           PATH_LIST                (e.g. path_list="/sbin /home1/1234/charles/bin")
-#           LDPATH_LIST              (e.g. ldpath_list="/opt/apps/papi/5.6.0/lib")
-#           MANPATH_LIST             (e.g. ="/dell/srvadmin/share/man /intel/man")
-#           PYTHONPATH_LIST          (e.g. ="$HOME/python /share/projects/google/python")
+#           PATH_LIST                (e.g. path_list="/sbin:/home1/1234/charles/bin") #colon separated
+#           LDPATH_LIST              (e.g. ldpath_list="/opt/apps/papi/5.6.0/lib")       # "
+#           MANPATH_LIST             (e.g. ="/dell/srvadmin/share/man:/intel/man")       # "
+#           PYTHONPATH_LIST          (e.g. ="$HOME/python:/share/projects/google/python")# "
 #  
 #       PREREQUISITES -- must be loaded
 #  
@@ -187,21 +187,28 @@ EOF
 # TODO -- still has some TACCism that should be generalized (e.g. $WORK directory)
 # TODO -- find "doc" in TOPDIR/share/doc (and man)
 #tmod https://github.com/cea-hpc/modules/blob/master/doc/paper/MC2_whitney_paper.pdf
+#
+# New Features  Version 2.1
+#     If arguments are not understood, print help and exit.
+
+#     for PATHS (e.g. TOPDIR_PATH_LIST, TOPDIR_LD_LIBRARY_PATH_LIST)
+#     require a colon (:) separated list (changed from space separated list)
 
 #                       Lmod and and Tmod divisions markers (mv this to section later)
 t_divider="  "
 l_divider="--"
 
 USAGE='
-  USAGE: mkmod [-h] | [-v] | [-r] | [-u "unit-type-test-variables"]
+  USAGE: mkmod [-h|--help] | [-v|--version] | [-r|--reset] 
 
          NAME, VER and TOPDIR must be defined and exported.
 
-         -h and -v are for this help and mkmod version number
-         -r displays "unset <var_list>" to execute to remove 
-         all mkmod-specific env vars mkmod sees (or would use).
-         -u is to be used only for debugging
-  ---------------------------------------------------------
+         optional information-only arguments:
+         -h this help
+         -v mkmod version number
+         -r displays all set variables used by mkmod as "unset <var_list>"; 
+            copy, paste and execute to start over for new package
+  -------------------------------------------------------------------------
 '
 # v-- ARGS and ENV VARS
 
@@ -212,12 +219,12 @@ USAGE='
      mkmod_env_groups=( mkmod_base_list   mkmod_whatis_list mkmod_use_list   mkmod_modfiles_list)
      mkmod_env_groups+=(mkmod_prereq_list mkmod_file_list   mkmod_debug_list mkmod_path_list    )
 
-     mkmod_env_numbered_groups=( ENV CMD ) 
+     mkmod_env_numbered_groups=( ENV CMD WHATIS ) 
 
        mkmod_base_list=( NAME VER TOPDIR )
-     mkmod_whatis_list=( WHATIS )
+       mkmod_info_list=( WHATIS HELP_MESSAGE )
         mkmod_use_list=( USE_IN_SHELLRC STARTUP_FILE_SUFFIX MKMOD_LOGIN_SHELL)
-   mkmod_modfiles_list=( PREFIX MODULEFILES_DIR GROUP_ACCESS )
+   mkmod_modfiles_list=( PREFIX SITE_INSTALL MODULEFILES_DIR GROUP_ACCESS )
      mkmod_prereq_list=( FAMILY COMPILER_PREREQ MPI_PREREQ AUTO_PREREQ PREREQ )
        mkmod_file_list=( HELP_FILE WHATIS_FILE MODULEFILE_FILE )
       mkmod_debug_list=( MKMOD_DEBUG )
@@ -234,7 +241,7 @@ USAGE='
 
 #    Arguments -- keep this very simple
 
-  if [[ $1 == "-h" ]] || [[ $1 == "--help" ]]; then
+  if [[ $1 == "-h" ]] || [[ $1 == "--help" ]] || [[ $1 == "-help" ]] ; then
      echo "$USAGE"
      echo "$MKMOD_HELP"
      exit 0
@@ -262,12 +269,20 @@ USAGE='
   if [[ $1 == "-u" ]] || [[ $1 == "--unit_tests" ]]; then
      shift
      if [[ ! $1 =~ [^[:space:]] ]]; then
-        echo "  ->  ERROR: -u options requires at least one argument" 
+        echo "  ->  ERROR: -u option requires at least one argument" 
         echo "  ->         -u unit_test_name1@var1=val1,var2=val2,...,varn=valn[;unit_test_name2@var1=val1,var2=val2...]..."
         echo "  ->         e.g. -u create_modulefile@FLAVOR=tmod:SITE=nersc;install_mod_use@LOGIN_SHELL=zsh:HOME=`pwd`"
         exit 1
      fi
      IFS=';' read -r -a units_and_vars <<<$1
+     shift
+  fi
+
+  if [[ $# > 0 ]]; then
+     echo "ERROR: mkmod didn't understand the arguments you gave; something is wrong."
+     echo "       Command you typed: $0 $*"
+     echo "$USAGE"        
+     exit 1
   fi
 
 
@@ -400,9 +415,9 @@ USAGE='
   if [[ ! $MODULEFILE_FILE =~ [^[:space:]] ]]; then
     provided_modulefile=no
 
-#                                            Don't look for file for these cases
-#                                            e.g. mkmod has modulefile.$FLAVOR in examples
-   if [[ ! $MODULEFILE_FILE == none ]] && [[ ! $NAME == mkmod ]]; then
+#                                            Don't look for file for this case
+#                                            e.g. mkmod pkg has modulefile.$FLAVOR in examples dir
+   if [[ ! $NAME == mkmod ]]; then
 
     modulefiles=( `find $TOPDIR -name modulefile.$FLAVOR -print` )
     if [[ ${#modulefiles[@]} >  1 ]]; then
@@ -425,11 +440,16 @@ USAGE='
    fi
 #                     # MODULEFILE_FILE is set, make sure it exists and is readable
   else
+   if [[ ! $MODULEFILE_FILE == none ]]; then
       provided_modulefile=yes
       if [[ -e $MODULEFILE_FILE  ]] &&  [[ -r $MODULEFILE_FILE ]]; then
         echo "  -> Permission OK on ENVIRONMENT supplied \$MODULEFILE_FILE file: $MODULEFILE_FILE."
-        echo "  -> Will NOT MAKE MAKEFILE, will use this file after performing variable substitution."
+        echo "  -> WILL NOT generate a modulefile; will use this file after performing variable substitution."
       fi
+   else
+      provided_modulefile=no
+      echo "  -> Will NOT LOOK FOR a modulefile.$FLAVOR file."
+   fi
   fi
 
 
@@ -455,8 +475,8 @@ USAGE='
     provided_whatis=no
 
 #                                            Don't look for file for these cases
-#                                            e.g. mkmod has modulefile.$FLAVOR in examples
-   if [[ ! $WHATIS_FILE == none ]] && [[ ! $NAME == mkmod ]]; then
+#                                            e.g. mkmod pkg has a modules_whatis in examples dir
+   if [[ ! $NAME == mkmod ]]; then
 
     whatiss=( `find $TOPDIR -name modules_whatis -print` )
     if [[ ${#whatiss[@]} >  1 ]]; then
@@ -479,11 +499,16 @@ USAGE='
    fi
 #                     # WHATIS_FILE is set, make sure it exists and is readable
   else
+   if [[ ! $WHATIS_FILE == none ]]; then
       provided_whatis=yes
       if [[ -e $WHATIS_FILE  ]] &&  [[ -r $WHATIS_FILE ]]; then
         echo "  -> Permission OK on \$WHATIS_FILE: $WHATIS_FILE file."
         echo "  -> Will create whatis entries after performing variable substitution on this file."
       fi
+   else
+      provided_whatis=no
+      echo "  -> Will NOT LOOK FOR a modules_whatis file"
+   fi
   fi
 
 
@@ -509,8 +534,8 @@ USAGE='
     provided_help=no
 
 #                                            Don't look for file for these cases
-#                                            e.g. mkmod has modulefile.$FLAVOR in examples
-   if [[ ! $HELP_FILE == none ]] && [[ ! $NAME == mkmod ]]; then
+#                                            e.g. mkmod pkg has modules_help in examples dir
+   if [[ ! $NAME == mkmod ]]; then
 
     helps=( `find $TOPDIR -name modules_help -print` )
     if [[ ${#helps[@]} >  1 ]]; then
@@ -533,11 +558,16 @@ USAGE='
    fi 
 #                     # HELP_FILE is set, make sure it exists and is readable
   else
+   if [[ ! $HELP_FILE == none ]]; then
       provided_help=yes
       if [[ -e $HELP_FILE  ]] &&  [[ -r $HELP_FILE ]]; then
         echo "  -> Permission OK on \$HELP_FILE: $HELP_FILE file."
         echo "  -> Will create help entries after performing variable substitution on this file."
       fi
+   else
+      provided_help=no
+      echo "  -> Will NOT LOOK FOR a modules_help file."
+   fi
   fi
 
 
@@ -578,7 +608,17 @@ USAGE='
      PREFIX_sml=$( echo $PREFIX | tr '[:upper:]' '[:lower:]' )
   fi
 
-  echo "  -> Prefix for module is \"$PREFIX_sml\". (Set PREFIX=\"\" for none.)"
+  #                       #IF site installation, use SITE for info. env. vars
+  #                       #no modulefile name prefix, no "module use ..." startup insertion
+  if [[ -z "${SITE_INSTALL+x}" ]]; then
+     PREFIX_cap=$( echo $SITE_INSTALL | tr '[:lower:]' '[:upper:]' )
+     PREFIX_cap=${PREFIX_cap}_
+     PREFIX_sml=""
+     USE_IN_SHELLRC=none 
+  fi
+
+  echo "  -> Prefix for module name is \"$PREFIX_sml\". (Set PREFIX=\"\" for none.)"
+  echo "  -> Prefix for informational env. var. names is \"$PREFIX_cap\"."
 
   
   if [[ ! "$MODULEFILES_DIR"  =~ [^[:space:]]  ]]; then
@@ -720,7 +760,8 @@ USAGE='
           fi
        else
           topdir_path_list=()
-          IFS=' ' read -r -a topdir_path_list <<<$TOPDIR_PATH_LIST
+      #KM#IFS=' ' read -r -a topdir_path_list <<<$TOPDIR_PATH_LIST
+          IFS=':' read -r -a topdir_path_list <<<$TOPDIR_PATH_LIST
        fi
 
 # ^-- TOPDIR PATHS
@@ -737,7 +778,8 @@ USAGE='
           fi
        else
           topdir_ldpath_list=()
-          IFS=' ' read -r -a topdir_ldpath_list <<<$TOPDIR_LDPATH_LIST
+      #KM#IFS=' ' read -r -a topdir_ldpath_list <<<$TOPDIR_LDPATH_LIST
+          IFS=':' read -r -a topdir_ldpath_list <<<$TOPDIR_LDPATH_LIST
        fi
 
 # ^-- TOPDIR LD_LIBRARY_PATHS
@@ -752,7 +794,8 @@ USAGE='
           fi
        else
           topdir_manpath_list=()
-          IFS=' ' read -r -a topdir_manpath_list <<<$TOPDIR_MANPATH_LIST
+      #KM#IFS=' ' read -r -a topdir_manpath_list <<<$TOPDIR_MANPATH_LIST
+          IFS=':' read -r -a topdir_manpath_list <<<$TOPDIR_MANPATH_LIST
        fi
 
 # ^-- TOPDIR MAN_PATHS
@@ -770,7 +813,8 @@ USAGE='
        else
           topdir_pythonpath_string=$topdir_pythonpath_list
           topdir_pythonpath_list=()
-          IFS=' ' read -r -a topdir_pythonpath_list <<<$TOPDIR_PYTHONPATH_LIST
+      #KM#IFS=' ' read -r -a topdir_pythonpath_list <<<$TOPDIR_PYTHONPATH_LIST
+             =':' read -r -a topdir_pythonpath_list <<<$TOPDIR_PYTHONPATH_LIST
        fi
 
   
@@ -1168,7 +1212,7 @@ USAGE='
 # ^-- Default Package Variables
 
 
-# v-- DEFAULT PATH
+# v-- DEFAULT PATHS
 
 # # DEFAULT path environment variables (path relative to $TOPDIR)
 
@@ -1238,12 +1282,13 @@ USAGE='
 
      module+=( " " )
   
-# ^-- DEFAULT PATH
+# ^-- DEFAULT PATHS
   
-# v-- USER-DEFINED PATH
+# v-- USER-DEFINED PATHS
 # # USER-DEFINED path environment variables (full path)
 
-  for dir in ${PATH_LIST[@]}; do
+  IFS=':' read -a my_ldpath_list <<< "$LDPATH_LIST"
+  for dir in    ${my_ldpath_list[@]}; do
     if [[ $FLAVOR == "lmod" ]]; then
      module+=( "prepend_path(\"PATH\",\"$dir\")" )
     else
@@ -1254,7 +1299,8 @@ USAGE='
                           #123456789012345....^
   done
   
-  for dir in ${LDPATH_LIST[@]}; do
+  IFS=':' read -a my_path_list <<< "$PATH_LIST"
+  for dir in    ${my_path_list[@]}; do
     if [[ $FLAVOR == "lmod" ]]; then
      module+=( "prepend_path(\"LD_LIBRARY_PATH\",\"$dir\")" )
     else
@@ -1264,7 +1310,9 @@ USAGE='
      PATH_DIRS+=" $at $bs\$LD_LIBRARY_PATH    $dir" ; at="@"
                           #123456789012345....^
   done
-  for dir in ${MANPATH_LIST[@]}; do
+
+  IFS=':' read -a my_manpath_list <<< "$MANPATH_LIST"
+  for dir in    ${my_manpath_list[@]}; do
     if [[ $FLAVOR == "lmod" ]]; then
      module+=( "prepend_path(\"MANPATH\",\"$dir\")" )
     else
@@ -1274,7 +1322,9 @@ USAGE='
      PATH_DIRS+=" $at $bs\$MANPATH            $dir" ; at="@"
                           #123456789012345....^
   done
-  for dir in ${PYTHONPATH_LIST[@]}; do
+
+  IFS=':' read -a my_pythonpath_list <<< "$PYTHONPATH_LIST"
+  for dir in    ${my_pythonpath_list[@]}; do
     if [[ $FLAVOR == "lmod" ]]; then
      module+=( "prepend_path(\"PYTHONPATH\",\"$dir\")" )
     else
@@ -1292,7 +1342,7 @@ USAGE='
        FILE=$MODULE_DIR/$MODULE
   fi
 
-# ^-- USER-DEFINED PATH
+# ^-- USER-DEFINED PATHS
 
 # v-- HELP MESSAGES
 # # begin Gather all help messages together
