@@ -61,9 +61,8 @@ TRY IT YOURSELF
                                        #prerequisite--since this is a
                                        #compiler/mpi agnostic tool
      
-        ../bin/mkmod                   #mkmod location relative to this directory
-                                       #ASSUMES YOU ARE IN mkmod/docs
-                                       #Change to suite yourself
+        #export INSTALL_DIR=<some_place_other_than_pwd>
+        make 
 
         #logout, then login
 
