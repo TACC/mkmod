@@ -233,10 +233,12 @@ USAGE='
                         TOPDIR_LDPATH_LIST
                         TOPDIR_MANPATH_LIST
                         TOPDIR_PYTHONPATH_LIST
+                        TOPDIR_PKGCONFIG_LIST
                         PATH_LIST
                         LDPATH_LIST
                         MANPATH_LIST
                         PYTHONPATH_LIST
+                        PKGCONFIG_LIST
                        )
 
 #    Arguments -- keep this very simple
@@ -262,13 +264,15 @@ USAGE='
      get_set_envs    envs_string                            # gets the set envs as a string
      set_envs_list=($envs_string)                           # create bash array from string
   
-     [[ $set_envs_list =~ [^[:space:]] ]] && echo "$SHELL_UNSET ${set_envs_list[@]}"
+##kfm[[ $set_envs_list =~ [^[:space:]] ]] && echo "$SHELL_UNSET ${set_envs_list[@]}"
+     [[ ${set_envs_list:+hasvalue} == hasvalue ]] && echo "$SHELL_UNSET ${set_envs_list[@]}"
      exit 0
   fi
                                     #unit_tests   Pick up unit tests here.
   if [[ $1 == "-u" ]] || [[ $1 == "--unit_tests" ]]; then
      shift
-     if [[ ! $1 =~ [^[:space:]] ]]; then
+##kfmif [[ ! $1 =~ [^[:space:]] ]]; then
+     if [[ ! ${1:+hasvalue} == hasvalue ]]; then
         echo "  ->  ERROR: -u option requires at least one argument" 
         echo "  ->         -u unit_test_name1@var1=val1,var2=val2,...,varn=valn[;unit_test_name2@var1=val1,var2=val2...]..."
         echo "  ->         e.g. -u create_modulefile@FLAVOR=tmod:SITE=nersc;install_mod_use@LOGIN_SHELL=zsh:HOME=`pwd`"
@@ -287,10 +291,14 @@ USAGE='
 
 
 # ENVIRONMENT PROCESSING
-
-  if [[ ! "$NAME"    =~ [^[:space:]]  ]] ||
-     [[ ! "$VER"     =~ [^[:space:]]  ]] ||
-     [[ ! "$TOPDIR"  =~ [^[:space:]]  ]] ;  then
+##kfm
+# if [[ ! "$NAME"    =~ [^[:space:]]  ]] ||
+#    [[ ! "$VER"     =~ [^[:space:]]  ]] ||
+#    [[ ! "$TOPDIR"  =~ [^[:space:]]  ]] ;  then
+#
+  if [[ ! ${NAME:+hasvalue}    == hasvalue  ]] ||
+     [[ ! ${VER:+hasvalue}     == hasvalue  ]] ||
+     [[ ! ${TOPDIR:+hasvalue}  == hasvalue  ]] ;  then
 
      echo " $USAGE "
      exit 1 
@@ -322,12 +330,14 @@ USAGE='
 
 # v-- DETERMINE if using LMOD OR TMOD
 
-  if [[ ! $MKMOD_FLAVOR =~ [^[:space:]] ]]; then
+##if [[ ! $MKMOD_FLAVOR =~ [^[:space:]] ]]; then
+  if [[ ! ${MKMOD_FLAVOR:+hasvalue} == hasvalue ]]; then
          # Determine whether to use tmod or lmod.
          # modver=(`module --version 2>&1`)    #Uh tmodule 3.x displays version and returns "1" !
          # if [[ ! $? == "0" ]]; then
          # Use MODULESHOME variable as indicator
-    if [[ ! "$MODULESHOME" =~ [^[:space:]]  ]]; then
+  ##if [[ ! "$MODULESHOME" =~ [^[:space:]]  ]]; then
+    if [[ ! ${MODULESHOME:+hasvalue} == hasvalue ]]; then
      echo "  ->  ERROR: Found neither Tmod (TCL) nor Lmod (Lua) to exist on this machine."
      echo "  ->         mkmod supports only these flavors of modules."
      echo "  ->         Used the existence of \$MODULEHOME to determine existence of environment modules."
@@ -412,7 +422,8 @@ USAGE='
 #                     # Checking for an application environment modules file (modulefile)
 
 #                     # If MODULEFILE_FILE is NOT set, search for one in the App directory (TOPDIR).
-  if [[ ! $MODULEFILE_FILE =~ [^[:space:]] ]]; then
+##if [[ ! $MODULEFILE_FILE =~ [^[:space:]] ]]; then
+  if [[ ! ${MODULEFILE_FILE:+hasvalue} == hasvalue ]]; then
     provided_modulefile=no
 
 #                                            Don't look for file for this case
@@ -459,7 +470,8 @@ USAGE='
      evaluate $MODULEFILE_FILE $FILE_TYPE $MODULEFILE_EVALD_FILE
   fi
 
-  if [[ $MKMOD_DEBUG =~ [^[:space:]] ]] && [[ $provided_modulefile == yes ]]; then
+##if [[ $MKMOD_DEBUG =~ [^[:space:]] ]] && [[ $provided_modulefile == yes ]]; then
+  if [[ ${MKMOD_DEBUG:+hasvalue} == hasvalue ]] && [[ $provided_modulefile == yes ]]; then
      echo $'\n\n\n'"-------------------------------------------------------------------------------"
      cat "$MODULEFILE_EVALD_FILE"
      echo "-------------------------------------------------------------------------------" $'\n'
@@ -471,7 +483,8 @@ USAGE='
 # v-- WHATIS_FILE
 
 #                     # If WHATIS_FILE is NOT set, search for one in the App directory (TOPDIR).
-  if [[ ! $WHATIS_FILE =~ [^[:space:]] ]]; then
+##if [[ ! $WHATIS_FILE =~ [^[:space:]] ]]; then
+  if [[ ! ${WHATIS_FILE:+hasvalue} == hasvalue ]]; then
     provided_whatis=no
 
 #                                            Don't look for file for these cases
@@ -518,7 +531,8 @@ USAGE='
      evaluate $WHATIS_FILE $FILE_TYPE $WHATIS_EVALD_FILE
   fi
 
-  if [[ $MKMOD_DEBUG =~ [^[:space:]] ]] && [[ $provided_whatis == yes ]]; then
+##if [[ $MKMOD_DEBUG =~ [^[:space:]] ]] && [[ $provided_whatis == yes ]]; then
+  if [[ ${MKMOD_DEBUG:+hasvalue} == hasvalue ]] && [[ $provided_whatis == yes ]]; then
      echo $'\n\n\n'"-------------------------------------------------------------------------------"
      cat "$WHATIS_EVALD_FILE"
      echo "-------------------------------------------------------------------------------" $'\n'
@@ -530,7 +544,8 @@ USAGE='
 # v-- HELP_FILE
 
 #                     # If HELP_FILE is NOT set, search for one in the App directory (TOPDIR).
-  if [[ ! $HELP_FILE =~ [^[:space:]] ]]; then
+##if [[ ! $HELP_FILE =~ [^[:space:]] ]]; then
+  if [[ ! ${HELP_FILE:+hasvalue} == hasvalue ]]; then
     provided_help=no
 
 #                                            Don't look for file for these cases
@@ -577,7 +592,8 @@ USAGE='
      evaluate $HELP_FILE $FILE_TYPE $HELP_EVALD_FILE
   fi
 
-  if [[ $MKMOD_DEBUG =~ [^[:space:]] ]] && [[ $provided_whatis == yes ]]; then
+##if [[ $MKMOD_DEBUG =~ [^[:space:]] ]] && [[ $provided_whatis == yes ]]; then
+  if [[ ${MKMOD_DEBUG:+hasvalue} == hasvalue ]] && [[ $provided_whatis == yes ]]; then
      echo $'\n\n\n'"-------------------------------------------------------------------------------"
      cat "$HELP_EVALD_FILE"
      echo "-------------------------------------------------------------------------------" $'\n'
@@ -610,7 +626,7 @@ USAGE='
 
   #                       #IF site installation, use SITE for info. env. vars
   #                       #no modulefile name prefix, no "module use ..." startup insertion
-  if [[ -z "${SITE_INSTALL+x}" ]]; then
+  if [[ ! -z "${SITE_INSTALL}" ]]; then
      PREFIX_cap=$( echo $SITE_INSTALL | tr '[:lower:]' '[:upper:]' )
      PREFIX_cap=${PREFIX_cap}_
      PREFIX_sml=""
@@ -621,7 +637,8 @@ USAGE='
   echo "  -> Prefix for informational env. var. names is \"$PREFIX_cap\"."
 
   
-  if [[ ! "$MODULEFILES_DIR"  =~ [^[:space:]]  ]]; then
+##if [[ ! "$MODULEFILES_DIR"  =~ [^[:space:]]  ]]; then
+  if [[ ! ${MODULEFILES_DIR:+hasvalue}  == hasvalue ]]; then
 
      MODULEFILES_DIR=$HOME/modulefiles      # Default place to put modulefiles
   fi   
@@ -674,7 +691,8 @@ USAGE='
 
   [[ $provided_help == yes ]] &&  echo "  -> Including help message from $HELP_FILE file."
 
-  if [[ "$HELP_MESSAGE"  =~ [^[:space:]]  ]]; then
+##if [[ "$HELP_MESSAGE"  =~ [^[:space:]]  ]]; then
+  if [[ ${HELP_MESSAGE:+hasvalue}  == hasvalue  ]]; then
      HELP_MESSAGE_INC=message
      help_env_text=yes
      if [[ $provided_help == yes ]]; then
@@ -691,7 +709,8 @@ USAGE='
   #                          # module usage (including prerequisites, and version, respectively:
   #                          # ( dirs paths envs module version )
   #                          
-  if [[ ! $AUTO_HELP =~ [^[:space:]] ]]; then
+##if [[ ! $AUTO_HELP =~ [^[:space:]] ]]; then
+  if [[ ! ${AUTO_HELP:+hasvalue} == hasvalue ]]; then
                         # Include all automatic help messages
      AUTO_HELP_INC=( dirs paths envs module version )
 
@@ -712,7 +731,8 @@ USAGE='
 
 # v-- Family
 
-  if [[ ! "$FAMILY"        =~ [^[:space:]]  ]]; then
+##if [[ ! "$FAMILY"        =~ [^[:space:]]  ]]; then
+  if [[ ! ${FAMILY:+hasvalue}        == hasvalue  ]]; then
      FAMILY=$NAME_sml
   else
      [[ $FAMILY == none ]] && FAMILY=""   # exception, no family if "none"
@@ -726,7 +746,8 @@ USAGE='
 # v-- ENV VARS
   # topdir_env_list
   
-       if [[ ! "$topdir_env_list"  =~ [^[:space:]] ]] ; then
+     ##if [[ ! "$topdir_env_list"  =~ [^[:space:]] ]] ; then
+       if [[ ! ${topdir_env_list:+hasvalue}  == hasvalue ]] ; then
          #topdir_env_default=( bin lib libs inc man doc docs )
           topdir_env_default=( bin lib libs lib64 include man doc docs share tools bench benchmark data Examples examples tutorials)
 
@@ -747,7 +768,8 @@ USAGE='
  
 # v-- TOPDIR PATHS
 
-       if [[ ! "$TOPDIR_PATH_LIST" =~ [^[:space:]]  ]]; then
+     ##if [[ ! "$TOPDIR_PATH_LIST" =~ [^[:space:]]  ]]; then
+       if [[ ! ${TOPDIR_PATH_LIST:+hasvalue} == hasvalue  ]]; then
           if [[ -d $TOPDIR/bin ]]; then
              topdir_path_list+=(bin)
              echo "  -> Autocheck found bin in \$TOPDIR."
@@ -768,7 +790,8 @@ USAGE='
 
 # v-- TOPDIR LD_LIBRARY_PATHS
 
-       if [[ ! "$TOPDIR_LDPATH_LIST" =~ [^[:space:]]  ]]; then
+     ##if [[ ! "$TOPDIR_LDPATH_LIST" =~ [^[:space:]]  ]]; then
+       if [[ ! ${TOPDIR_LDPATH_LIST:+hasvalue} == hasvalue  ]]; then
           [[ -d $TOPDIR/lib   ]] && topdir_ldpath_list=(lib)
           [[ -d $TOPDIR/libs  ]] && topdir_ldpath_list=(libs)
           [[ -d $TOPDIR/lib64 ]] && topdir_ldpath_list=(lib64)
@@ -786,7 +809,8 @@ USAGE='
 
 # v-- TOPDIR MAN_PATHS
 
-       if [[ ! "$TOPDIR_MANPATH_LIST" =~ [^[:space:]]  ]]; then
+     ##if [[ ! "$TOPDIR_MANPATH_LIST" =~ [^[:space:]]  ]]; then
+       if [[ ! ${TOPDIR_MANPATH_LIST:+hasvalue} == hasvalue  ]]; then
           if [[ -d $TOPDIR/man ]]; then
              topdir_manpath_list=(man)
              echo "  -> Autocheck found man in \$TOPDIR."
@@ -804,7 +828,8 @@ USAGE='
 # v-- TOPDIR PYTHONPATHS
 
 
-       if [[ ! "$TOPDIR_PYTHONPATH_LIST" =~ [^[:space:]]  ]]; then
+     ##if [[ ! "$TOPDIR_PYTHONPATH_LIST" =~ [^[:space:]]  ]]; then
+       if [[ ! ${TOPDIR_PYTHONPATH_LIST:+hasvalue} == hasvalue ]]; then
           if [[ -d $TOPDIR/python ]]; then
              topdir_pythonpath_list=(python)
              echo "  -> Autocheck found python in \$TOPDIR."
@@ -818,9 +843,29 @@ USAGE='
        fi
 
   
-       echo "  -> Modulefile  ${MODULE_prefix}$NAME_sml/$MODULE  will go in $MODULEFILES_DIR" 
 
 # ^-- TOPDIR PYTHONPATHS
+
+# v-- TOPDIR PKGCONFIGPATHS
+
+
+     ##if [[ ! "$TOPDIR_PKGCONFIGPATH_LIST" =~ [^[:space:]]  ]]; then
+       if [[ ! ${TOPDIR_PKGCONFIGPATH_LIST:+hasvalue} == hasvalue ]]; then
+          if [[ -d $TOPDIR/pkgconfig ]]; then
+             topdir_pkgconfigpath_list=(pkgconfig)
+             echo "  -> Autocheck found pkgconfig in \$TOPDIR."
+             echo "  ->           Will include in PKG_CONFIG_PATH."
+          fi
+       else
+          topdir_pkgconfigpath_string=$topdir_pkgconfigpath_list
+          topdir_pkgconfigpath_list=()
+      #KM#IFS=' ' read -r -a topdir_pkgconfigpath_list <<<$TOPDIR_PKGCONFIGPATH_LIST
+             =':' read -r -a topdir_pkgconfigpath_list <<<$TOPDIR_PKGCONFIGPATH_LIST
+       fi
+
+# ^-- TOPDIR PKGCONFIGPATHS
+
+       echo "  -> Modulefile  ${MODULE_prefix}$NAME_sml/$MODULE  will go in $MODULEFILES_DIR" 
 
 #^---- Modulefile Prep         
 
@@ -839,7 +884,8 @@ USAGE='
 # v-- WHATIS
 
   whatis_env_text=no
-  if [[ "$WHATIS" =~ [^[:space:]]  ]]; then
+##if [[ "$WHATIS" =~ [^[:space:]]  ]]; then
+  if [[ ${WHATIS:+hasvalue} == hasvalue ]]; then
      whatis_env_text=yes
      echo "  -> Including \"whatis\" information in the modulefile."
 
@@ -860,11 +906,13 @@ USAGE='
   fi
 
                 # Version 1 now uses numbered variables (WHATIS1, WHATIS2,...)
-  if [[  "$WHATIS1"  =~ [^[:space:]] ]]; then  #only do if WHATISx exist
+##if [[  "$WHATIS1"  =~ [^[:space:]] ]]; then  #only do if WHATISx exist
+  if [[  ${WHATIS1:+hasvalue}  == hasvalue ]]; then  #only do if WHATISx exist
      whatis_env_text=yes
      for i in `seq 1 30`; do
        text=$( eval echo \"\$WHATIS$i\" )
-       if [[  "$text"  =~ [^[:space:]] ]]; then
+     ##if [[  "$text"  =~ [^[:space:]] ]]; then
+       if [[  ${text:+hasvalue}  == hasvalue ]]; then
          shopt -s extglob
          a="${text##*( )}"; trimmed_text="${a%%*( )}"
          shopt -u extglob
@@ -904,7 +952,8 @@ USAGE='
         a="${text##*( )}"; trimmed_text="${a%%*( )}"
         shopt -u extglob
 #                             #Don't want blank lines.
-        if [[ $trimmed_text =~ [^[:space:]] ]]; then
+      ##if [[ $trimmed_text =~ [^[:space:]] ]]; then
+        if [[ ${trimmed_text:+hasvalue} == hasvalue ]]; then
           if [[ $FLAVOR == "lmod" ]]; then
              module+=( "whatis(\"$trimmed_text\")" )
           else
@@ -922,7 +971,8 @@ USAGE='
   [[ $FLAVOR == "tmod" ]] && module+=( "$t_divider" )
   
   if [[ $FLAVOR == "lmod" ]] ; then
-     [[ "$FAMILY" =~ [^[:space:]]  ]]&&  module+=( "family(\"$FAMILY\")" )
+   ##[[ "$FAMILY" =~ [^[:space:]]  ]]&&  module+=( "family(\"$FAMILY\")" )
+     [[ ${FAMILY:+hasvalue} == hasvalue  ]]&&  module+=( "family(\"$FAMILY\")" )
   fi
 
 
@@ -936,15 +986,18 @@ USAGE='
 
     comp_mpi_prereq=()
 
-    if [[ ! "$COMPILER_PREREQ" =~ [^[:space:]]  ]]; then
-      if [[ "$LMOD_FAMILY_COMPILER_VERSION" =~ [^[:space:]] ]] && [[ "$LMOD_FAMILY_COMPILER" =~ [^[:space:]] ]]; then
+  ##if [[ ! "$COMPILER_PREREQ" =~ [^[:space:]]  ]]; then
+    if [[ ! ${COMPILER_PREREQ:+hasvalue} == hasvalue  ]]; then
+    ##if [[ "$LMOD_FAMILY_COMPILER_VERSION" =~ [^[:space:]] ]] && [[ "$LMOD_FAMILY_COMPILER" =~ [^[:space:]] ]]; then
+      if [[ ${LMOD_FAMILY_COMPILER_VERSION:+hasvalue} == hasvalue ]] && [[ ${LMOD_FAMILY_COMPILER:+hasvalue} =~ hasvalue ]]; then
         COMPILER_PREREQ=$LMOD_FAMILY_COMPILER/$LMOD_FAMILY_COMPILER_VERSION
         echo "  -> Setting COMPILER PREREQ to $LMOD_FAMILY_COMPILER/$LMOD_FAMILY_COMPILER_VERSION"
         comp_mpi_prereq=( "$COMPILER_PREREQ" )
        #module+=( "prereq(\"$COMPILER_PREREQ\")" )
       fi
     else  # COMPILER_PREREQ set
-      if [[ "$LMOD_FAMILY_COMPILER_VERSION" =~ [^[:space:]] ]] && [[ "$LMOD_FAMILY_COMPILER" =~ [^[:space:]] ]]; then
+    ##if [[ "$LMOD_FAMILY_COMPILER_VERSION" =~ [^[:space:]] ]] && [[ "$LMOD_FAMILY_COMPILER" =~ [^[:space:]] ]]; then
+      if [[ ${LMOD_FAMILY_COMPILER_VERSION:+hasvalue} == hasvalue ]] && [[ ${LMOD_FAMILY_COMPILER:+hasvalue} == hasvalue ]]; then
           if [[ $LMOD_FAMILY_COMPILER/$LMOD_FAMILY_COMPILER_VERSION != $COMPILER_PREREQ ]]; then
             echo ""
             echo "  -> WARNING:"
@@ -962,9 +1015,11 @@ USAGE='
   
 #   v-MPI lmod
 
-    if [[ ! "$MPI_PREREQ" =~ [^[:space:]]  ]]; then
+  ##if [[ ! "$MPI_PREREQ" =~ [^[:space:]]  ]]; then
+    if [[ ! ${MPI_PREREQ:+hasvalue} == hasvalue  ]]; then
   
-      if [[ "$LMOD_FAMILY_MPI_VERSION" =~ [^[:space:]] ]] && [[ "$LMOD_FAMILY_MPI" =~ [^[:space:]] ]]; then
+    ##if [[ "$LMOD_FAMILY_MPI_VERSION" =~ [^[:space:]] ]] && [[ "$LMOD_FAMILY_MPI" =~ [^[:space:]] ]]; then
+      if [[ ${LMOD_FAMILY_MPI_VERSION:+hasvalue} == hasvalue ]] && [[ ${LMOD_FAMILY_MPI:+hasvalue} == hasvalue ]]; then
         MPI_PREREQ=$LMOD_FAMILY_MPI/$LMOD_FAMILY_MPI_VERSION
         echo "  -> Setting MPI PREREQ to $LMOD_FAMILY_MPI/$LMOD_FAMILY_MPI_VERSION"
         comp_mpi_prereq+=( "$MPI_PREREQ" )
@@ -973,7 +1028,8 @@ USAGE='
   
     else  # MPI_PREREQ set
   
-      if [[ "$LMOD_FAMILY_MPI_VERSION" =~ [^[:space:]] ]] && [[ "$LMOD_FAMILY_MPI" =~ [^[:space:]] ]]; then
+    ##if [[ "$LMOD_FAMILY_MPI_VERSION" =~ [^[:space:]] ]] && [[ "$LMOD_FAMILY_MPI" =~ [^[:space:]] ]]; then
+      if [[ ${LMOD_FAMILY_MPI_VERSION:+hasvalue} == hasvalue ]] && [[ ${LMOD_FAMILY_MPI:+hasvalue} == hasvalue ]]; then
           if [[ $LMOD_FAMILY_MPI/$LMOD_FAMILY_MPI_VERSION != $MPI_PREREQ ]]; then
             echo "" 
             echo "  -> WARNING:"
@@ -986,7 +1042,8 @@ USAGE='
       #module+=( "prereq(\"$MPI_PREREQ\")" )
     fi
  
-    if [[ "$comp_mpi_prereq" =~ [^[:space:]]  ]]; then
+  ##if [[ "$comp_mpi_prereq" =~ [^[:space:]]  ]]; then
+    if [[ ${comp_mpi_prereq:+hasvalue} == hasvalue ]]; then
       list=""; comma=""
       for prereq in "${comp_mpi_prereq[@]}"; do
         list="${list}${comma} \"$prereq\""
@@ -1015,14 +1072,16 @@ USAGE='
           if [[   ${loaded_compiler%%/*} =~ ^${compiler} ]] &&
              [[ ! ${loaded_compiler%%/*} =~ mpi ]]; then    #Uh sites used: intel and intelmpi
              comp_prereq+=($loaded_compiler)
-             [[ $MKMOD_DEBUG =~ [^[:space:]] ]] &&  
+           ##[[ $MKMOD_DEBUG =~ [^[:space:]] ]] &&  
+             [[ ${MKMOD_DEBUG:+hasvalue} == hasvalue ]] &&  
                 echo "Found compiler=$compiler  loaded_compiler=$loaded_compiler"
           fi
        done
  
     done
  
-    if [[ ! "$COMPILER_PREREQ" =~ [^[:space:]]  ]]; then
+  ##if [[ ! "$COMPILER_PREREQ" =~ [^[:space:]]  ]]; then
+    if [[ ! ${COMPILER_PREREQ:+hasvalue} == hasvalue  ]]; then
  
        if (( ${#comp_prereq[@]} > 1 )); then
           echo "  -> ERROR:  Houston, we have a problem."
@@ -1090,7 +1149,8 @@ USAGE='
           if [[ ${loaded_MOD%%/*} =~ "$MPI" ]]; then
              MPI_loaded_cnt=$(( MPI_loaded_cnt + 1 ))
              loaded_MPIs+=( $loaded_MOD )
-             [[ $MKMOD_DEBUG =~ [^[:space:]] ]] &&  
+           ##[[ $MKMOD_DEBUG =~ [^[:space:]] ]] &&  
+             [[ ${MKMOD_DEBUG:+hasvalue} == hasvalue ]] &&  
                 echo "Found MPI=$MPI  loaded_MPI=$loaded_MPI"
           fi
        done
@@ -1098,7 +1158,8 @@ USAGE='
     done
                           #MPI_PREREQ must be a specific MPI
                           #Only 1 is ever allowed
-    if [[ $MPI_loaded_cnt > 1 ]] && [[ ! "$MPI_PREREQ" =~ [^[:space:]]  ]]; then
+   #if [[ $MPI_loaded_cnt > 1 ]] && [[ ! "$MPI_PREREQ" =~ [^[:space:]]  ]]; then
+    if [[ $MPI_loaded_cnt > 1 ]] && [[ ! ${MPI_PREREQ:+hasvalue} == hasvalue ]]; then
        echo "  -> ERROR:  Houston, we have a problem."
        echo "  ->         Found two or more MPIs loaded at the same time:"
        echo "  ->         ${loaded_MPIs[@]}"
@@ -1107,7 +1168,8 @@ USAGE='
        exit
     fi
  
-    if [[ ! "$MPI_PREREQ" =~ [^[:space:]]  ]]; then 
+  ##if [[ ! "$MPI_PREREQ" =~ [^[:space:]]  ]]; then 
+    if [[ ! ${MPI_PREREQ:+hasvalue} == hasvalue ]]; then 
  
      if [[ $MPI_loaded_cnt > 0 ]]; then
        module+=( "prereq ${loaded_MPIs[0]}" )
@@ -1147,7 +1209,8 @@ USAGE='
 
                #Now add explict PREREQS
 
-  if [[ $PREREQ =~ [^[:space:]] ]]; then
+##if [[ $PREREQ =~ [^[:space:]] ]]; then
+  if [[ ${PREREQ:+hasvalue} == hasvalue ]]; then
     IFS=' ' read -r -a prereqs <<< "$PREREQ"
     for prereq in  "${prereqs[@]}"; do
       if [[ $FLAVOR == "lmod" ]]; then
@@ -1224,7 +1287,8 @@ USAGE='
   
                              # If no topdir bin directory exist, put topdir in PATH
                                                           at=""
-  if [[ ! "$topdir_path_list" =~ [^[:space:]]  ]]; then  
+##if [[ ! "$topdir_path_list" =~ [^[:space:]]  ]]; then  
+  if [[ ! ${topdir_path_list:+hasvalue} == hasvalue ]]; then  
     if [[ $FLAVOR == "lmod" ]]; then
      module+=( "prepend_path(\"PATH\", topdir)" )
     else
@@ -1334,9 +1398,24 @@ USAGE='
      PATH_DIRS+=" $at $bs\$PYTHONPATH         $dir" ; at="@"
                           #123456789012345....^
   done
+
+
+  IFS=':' read -a            my_pkgconfigpath_list <<< "$PKGCONFIGPATH_LIST"
+  for dir in               ${my_pkgconfigpath_list[@]}; do
+    if [[ $FLAVOR == "lmod" ]]; then
+     module+=( "prepend_path(\"PKG_CONFIG_PATH\",\"$dir\")" )
+    else
+     module+=( "prepend-path   PKG_CONFIG_PATH     $dir" )
+    fi
+     PATH_DIRS+=" $at $bs\$PKG_CONFIG_PATH    $dir" ; at="@"
+                          #123456789012345....^
+  done
+
+
   
   
-  if [[ "$MKMOD_DEBUG"  =~ [^[:space:]]  ]]; then
+##if [[ "$MKMOD_DEBUG"  =~ [^[:space:]]  ]]; then
+  if [[ ${MKMOD_DEBUG:+hasvalue}  == hasvalue ]]; then
        FILE=/tmp/${USER}_${MODULE}_$$
   else
        FILE=$MODULE_DIR/$MODULE
@@ -1408,11 +1487,13 @@ USAGE='
 
                     # Include user-defined environment variables
   if [[ ${AUTO_HELP_INC[@]} =~ envs ]]; then
-     if [[  "$ENV1"  =~ [^[:space:]] ]]; then  #only do if ENVx exist
+   ##if [[  "$ENV1"  =~ [^[:space:]] ]]; then  #only do if ENVx exist
+     if [[  ${ENV1:+hasvalue}  == hasvalue ]]; then  #only do if ENVx exist
         HELP_ENVS=$'\n   ENV VAR - SUPPORT' 
         for i in `seq 1 30`; do
           env=$( eval echo \"\$ENV$i\" )
-          if [[  "$env"  =~ [^[:space:]] ]]; then
+        ##if [[  "$env"  =~ [^[:space:]] ]]; then
+          if [[  ${env:+hasvalue}  == hasvalue ]]; then
             IFS='= ' read -r key val <<< "$env"
            #line=$(printf "%20s = %s" "$key" "$val")
             line=$(printf "    %-17s = %s" "$key" "$val")
@@ -1429,7 +1510,8 @@ USAGE='
   fi
  
  
-  if [[ "$MKMOD_DEBUG" =~ [^[:space:]] ]]; then
+##if [[ "$MKMOD_DEBUG" =~ [^[:space:]] ]]; then
+  if [[ ${MKMOD_DEBUG:+hasvalue} == hasvalue ]]; then
      echo "  ->> MKMOD_DEBUG: These AUTOMATIC HELP MESSAGES were selected to include in the modulefile:"
      echo "  ->>              ${AUTO_HELP_INC[@]}"
     #echo "$HELP_DIRS" "$HELP_PATHS" "$HELP_ENVS" "$HELP_MODULE" "$HELP_MESSAGE" "$HELP_VERSION" 
@@ -1470,7 +1552,7 @@ if [[ $create_module_file == true ]]; then
   [[ ${AUTO_HELP_INC[@]}     =~ dirs        ]] && echo "$HELP_DIRS"    >> $FILE
   [[ ${AUTO_HELP_INC[@]}     =~ paths       ]] && echo "$HELP_PATHS"   >> $FILE
   [[ ${AUTO_HELP_INC[@]}     =~ envs        ]] && \
-  [[ "$ENV1"  =~ [^[:space:]] ]] &&              echo "$HELP_ENVS"     >> $FILE
+  [[ ${ENV1:+hasvalue}       == hasvalue    ]] && echo "$HELP_ENVS"    >> $FILE
   [[ ${AUTO_HELP_INC[@]}     =~ module      ]] && echo "$HELP_MODULE"  >> $FILE
   [[       $HELP_MESSAGE_INC =~ message     ]] && echo "$HELP_MESSAGE" >> $FILE
   [[ ${AUTO_HELP_INC[@]}     =~ version     ]] && echo "$HELP_VERSION" >> $FILE
@@ -1517,7 +1599,8 @@ if [[ $create_module_file == true ]]; then
                   # Include user-defined environment variables
   for i in `seq 1 30`; do
     env=$( eval echo \"\$ENV$i\" )
-    if [[  "$env"  =~ [^[:space:]] ]]; then
+  ##if [[  "$env"  =~ [^[:space:]] ]]; then
+    if [[  ${env:+hasvalue}  == hasvalue ]]; then
        IFS='= ' read -r key val <<< "$env"
                        if [[ $FLAVOR == "lmod" ]]; then
                         echo "setenv( \"${key}\",  \"${val}\" )" >> $FILE
@@ -1531,18 +1614,22 @@ if [[ $create_module_file == true ]]; then
 
   #v--CMDS
 
-  [[ $ENV1 =~ [^[:space:]] ]] && echo ""                >> $FILE
+##[[ $ENV1 =~ [^[:space:]] ]] && echo ""                >> $FILE
+  [[ ${ENV1:+hasvalue} == hasvalue ]] && echo ""                >> $FILE
 
                   # Include user-defined (custom) LUA commands
   for i in `seq 1 30`; do
     cmd=$( eval echo \"\$CMD$i\" )
-    [[  "$cmd"  =~ [^[:space:]] ]] &&               echo "$cmd" >> $FILE
+  ##[[  "$cmd"  =~ [^[:space:]] ]] &&               echo "$cmd" >> $FILE
+    [[  ${cmd:+hasvalue}  == hasvalue ]] &&         echo "$cmd" >> $FILE
   done
 
-  [[ $CMD1 =~ [^[:space:]] ]] && echo ""                >> $FILE
+##[[ $CMD1 =~ [^[:space:]] ]] && echo ""                >> $FILE
+  [[ ${CMD1:+hasvalue} == hasvalue ]] && echo ""                >> $FILE
 
 
-  if [[ ! "$MKMOD_DEBUG"  =~ [^[:space:]]  ]]; then
+##if [[ ! "$MKMOD_DEBUG"  =~ [^[:space:]]  ]]; then
+  if [[ ! ${MKMOD_DEBUG:+hasvalue}  == hasvalue ]]; then
      echo "  -> Finished creating and installing the modulefile for $NAME_cap."
      echo ""
   else
@@ -1566,14 +1653,16 @@ fi #create_module_file == true
 if [[ $module_use_in_startup == true ]]; then  
 #############BEG--v      GROUP ACCESS REQUEST
   
-  if [[ $GROUP_ACCESS =~ [^[:space:]] ]]; then
+##if [[ $GROUP_ACCESS =~ [^[:space:]] ]]; then
+  if [[ ${GROUP_ACCESS:+hasvalue} == hasvalue ]]; then
   
      echo ""
      echo "  -> GROUP_ACCESS variable is set.  Will allow group access to modulefile."
      echo ""
    
                           # Determine which group to use
-     if [[ ! $GROUP =~ [^[:space:]] ]]; then
+   ##if [[ ! $GROUP =~ [^[:space:]] ]]; then
+     if [[ ! ${GROUP:+hasvalue} == hasvalue ]]; then
   
                           # Use the primary group
         GROUP=`id -gn`
@@ -1668,7 +1757,8 @@ if [[ $module_use_in_startup == true ]]; then
   ln_shell_by="from MKMOD_LOGIN_SHELL var, or SHELL var, or finger"
   my_login_shell=""
   
-  if [[ $MKMOD_LOGIN_SHELL =~ [^[:space:]] ]]; then
+##if [[ $MKMOD_LOGIN_SHELL =~ [^[:space:]] ]]; then
+  if [[ ${MKMOD_LOGIN_SHELL:+hasvalue} == hasvalue ]]; then
      LOGIN_SHELL=$MKMOD_LOGIN_SHELL
      ln_shell_by="by MKMOD_LOGIN_SHELL var"
   else
@@ -1677,7 +1767,8 @@ if [[ $module_use_in_startup == true ]]; then
         LOGIN_SHELL=`finger -m $USER |grep Shell: |sed  's/.*Shell:\s*\([a-z,\/]*\)/\1/'`
         ln_shell_by="by finger"
      else
-        if [[ $SHELL  =~ [^[:space:]] ]]; then
+      ##if [[ $SHELL  =~ [^[:space:]] ]]; then
+        if [[ ${SHELL:+hasvalue}  == hasvalue ]]; then
            LOGIN_SHELL=$SHELL
            ln_shell_by="by SHELL var"
         fi
@@ -1689,21 +1780,24 @@ if [[ $module_use_in_startup == true ]]; then
   done
   
   #           no determined value                           not set
-  if [[ $LOGIN_SHELL =~ not_found ]] && [[ ! $MKMOD_LOGIN_SHELL =~ [^[:space:]] ]]; then
+##if [[ $LOGIN_SHELL =~ not_found ]] && [[ ! $MKMOD_LOGIN_SHELL =~ [^[:space:]] ]]; then
+  if [[ $LOGIN_SHELL =~ not_found ]] && [[ ! ${MKMOD_LOGIN_SHELL:+hasvalue} == hasvalue ]]; then
      echo "  -> INTERNAL ERROR: Could not determine login shell."
      echo "  ->                 Please set MKMOD_LOGIN_SHELL"
      echo "  ->                 to your login shell (e.g. bash,tcsh, etc)."
      exit
   fi
   
-  if [[ ! $my_login_shell =~ [^[:space:]] ]]; then
+##if [[ ! $my_login_shell =~ [^[:space:]] ]]; then
+  if [[ ! ${my_login_shell:+hasvalue} == hasvalue ]]; then
      echo "  -> ERROR: Login shell \"$LOGIN_SHELL\" as determined $ln_shell_by"
      echo "  ->        was not found to be one of supported shells (${supported_shells[@]})."
      exit
   fi
   
   echo "  -> As determined $ln_shell_by, $my_login_shell is assumed to be your login shell."
-  [[ ! $MKMOD_LOGIN_SHELL =~ [^[:space:]] ]] &&
+##[[ ! $MKMOD_LOGIN_SHELL =~ [^[:space:]] ]] &&
+  [[ ! ${MKMOD_LOGIN_SHELL:+hasvalue} == hasvalue ]] &&
        echo "  ->    This can be changed by setting your shell in MKMOD_LOGIN_SHELL."
 
   #           Take off path (Next section only uses base name, bash, tcsh, etc.)  
@@ -1716,7 +1810,8 @@ if [[ $module_use_in_startup == true ]]; then
 #                                    Insert if not found, and logic to execute just once
 #                                    bash, csh, tcsh and zsh supported
 
-  if [[ ! "$MKMOD_DEBUG"  =~ [^[:space:]]  ]] && [[ ! "$USE_IN_SHELLRC"  =~ none  ]] ; then
+##if [[ ! "$MKMOD_DEBUG"  =~ [^[:space:]]  ]] && [[ ! "$USE_IN_SHELLRC"  =~ none  ]] ; then
+  if [[ ! ${MKMOD_DEBUG:+hasvalue}  == hasvalue ]] && [[ ! "$USE_IN_SHELLRC"  =~ none  ]] ; then
      echo $'\n'"  -> MODULE USE in STARTUP FILE:"
 
 ####### DETERMINE STARTUPS 
@@ -1767,13 +1862,15 @@ if [[ $module_use_in_startup == true ]]; then
      #SITE=unknown     ###TAKEOUT
      #SITE_STARTUP_FILE_SUFFIX=""
  
-     if [[ $MKMOD_STARTUP_FILE_SUFFIX =~ [^[:space:]] ]]; then
+   ##if [[ $MKMOD_STARTUP_FILE_SUFFIX =~ [^[:space:]] ]]; then
+     if [[ ${MKMOD_STARTUP_FILE_SUFFIX:+hasvalue} == hasvalue ]]; then
  
        STARTUP_FILE_SUFFIX=$MKMOD_STARTUP_FILE_SUFFIX
  
      else
  
-       if [[ ! $STARTUP_FILE_SUFFIX =~ [^[:space:]] ]]; then
+     ##if [[ ! $STARTUP_FILE_SUFFIX =~ [^[:space:]] ]]; then
+       if [[ ! ${STARTUP_FILE_SUFFIX:+hasvalue} == hasvalue ]]; then
           #  Determine if site has an assigned suffix for the profile (e.g. NERSC uses .ext)
 
           [[ ! $SITE == unknown ]] && [[ ! ${site_suffixes[$SITE_index]} == none ]] && \
@@ -1808,8 +1905,10 @@ if [[ $module_use_in_startup == true ]]; then
           has_use_in_LOGINFILE=no
           has_use_in_RCFILE=no
 
-          [[ ! $bashrc_access  =~ [^[:space:]] ]] && print_no_startup_file BASH $bashrc$STARTUP_FILE_SUFFIX    $MODULEFILES_DIR && exit 1
-          [[ ! $profile_access =~ [^[:space:]] ]] && print_no_startup_file BASH ".bash_profile|.profile|.bash_login$STARTUP_FILE_SUFFIX" $MODULEFILES_DIR && exit 1
+        ##[[ ! $bashrc_access  =~ [^[:space:]] ]] && print_no_startup_file BASH $bashrc$STARTUP_FILE_SUFFIX    $MODULEFILES_DIR && exit 1
+          [[ ! ${bashrc_access:+hasvalue}  == hasvalue ]] && print_no_startup_file BASH $bashrc$STARTUP_FILE_SUFFIX    $MODULEFILES_DIR && exit 1
+        ##[[ ! $profile_access =~ [^[:space:]] ]] && print_no_startup_file BASH ".bash_profile|.profile|.bash_login$STARTUP_FILE_SUFFIX" $MODULEFILES_DIR && exit 1
+          [[ ! ${profile_access:+hasvalue} == hasvalue ]] && print_no_startup_file BASH ".bash_profile|.profile|.bash_login$STARTUP_FILE_SUFFIX" $MODULEFILES_DIR && exit 1
 
           [[   $bashrc_access  == "read-only" ]] && print_startup_problem $RCFILE $bashrc_access           && exit 1
           [[   $profile_access == "read-only" ]] && print_startup_problem $LOGINFILE $profile_access       && exit 1
@@ -1878,7 +1977,8 @@ if [[ $module_use_in_startup == true ]]; then
 
           has_use_in_RCFILE=no
 
-          [[ ! $cshrc_access  =~ [^[:space:]] ]] && print_no_startup_file CSH  $cshrc  $MODULEFILES_DIR &&  \
+        ##[[ ! $cshrc_access  =~ [^[:space:]] ]] && print_no_startup_file CSH  $cshrc  $MODULEFILES_DIR &&  \
+          [[ ! ${cshrc_access:+hasvalue}  == hasvalue ]] && print_no_startup_file CSH  $cshrc  $MODULEFILES_DIR &&  \
                                                     RCFILE=$cshrc; touch $HOME/$RCFILE; chmod 700 $HOME/$RCFILE
 
           [[   $cshrc_access == "read-only"   ]] && print_startup_problem $RCFILE $cshrc_access  &&exit 1
@@ -1926,7 +2026,8 @@ if [[ $module_use_in_startup == true ]]; then
 
           has_use_in_RCFILE=no
 
-          [[ ! $tcshrc_access  =~ [^[:space:]] ]] && print_no_startup_file TCSH  $tcshrc  $MODULEFILES_DIR && \
+        ##[[ ! $tcshrc_access  =~ [^[:space:]] ]] && print_no_startup_file TCSH  $tcshrc  $MODULEFILES_DIR && \
+          [[ ! ${tcshrc_access:+hasvalue}  == hasvalue ]] && print_no_startup_file TCSH  $tcshrc  $MODULEFILES_DIR && \
                                                     RCFILE=$tcshrc; touch $HOME/$RCFILE; chmod 700 $HOME/$RCFILE
 
           [[   $tcshrc_access == "read-only"   ]] && print_startup_problem      $RCFILE  $tcshrc_access   && exit 1
@@ -1971,7 +2072,8 @@ if [[ $module_use_in_startup == true ]]; then
 
           has_use_in_ENVFILE=no
 
-          [[ ! $zshenv_access =~ [^[:space:]] ]] && print_no_startup_file ZSH  .zshenv  $MODULEFILES_DIR && \
+        ##[[ ! $zshenv_access =~ [^[:space:]] ]] && print_no_startup_file ZSH  .zshenv  $MODULEFILES_DIR && \
+          [[ ! ${zshenv_access:+hasvalue} == hasvalue ]] && print_no_startup_file ZSH  .zshenv  $MODULEFILES_DIR && \
                                                     ENVFILE=.zshenv; touch $HOME/$ENVFILE; chmod 700 $HOME/$ENVFILE
 
           [[   $zshenv_access == "read-only"  ]] && print_startup_problem      $ENVFILE  $zshenv_access   && exit 1
