@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# You can just execute this file, or cut and past commands.
+#
 # Real World Example with mkmod
 # Make sure mkmod is installed and is loaded.
 # (See docs/INSTALL)
