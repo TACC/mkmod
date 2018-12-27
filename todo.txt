@@ -1,0 +1,7 @@
+(A) Document  package_HOME or packageHOME variables +mkmod due:2019-03-31
+(B) have .mkmodrc for alternate defaults: MODULEFILES_DIR, PREFIX, etc. +mkmod  due:2019-07-01
+(B) After 1st install, USE_IN_SHELLRC=none, unless new MODULEFILES_DIR or reinstall +mkmod due:2019-07-01
+(C) Document Structure of Code, adding Site-specific values/code, etc +mkmod due:2020-01-01
+(I) Include  C_PATH-type paths with other PATH-type search and inserts. +mkmod due:2020-01-01
+(Z) For PATH-type directories do deep search for x86_64, share/man, etc. +mkmod due:2020-01-01
+(Z) Document this todo.txt file: https://github.com/todotxt/todo.txt-cli/wiki/User-Documentation +mkmod due:2020-01-01
