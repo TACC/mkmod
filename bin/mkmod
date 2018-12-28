@@ -8,12 +8,6 @@ module_use_in_startup=true  #set to false to NOT execute module use insertion (i
 MKMOD_VERSION=2.1  # VERSION SOURCE makefile extracts version from this line
                    # DO NOT MODIFY format "MKMOD_version=<ver>  # VERSION SOURCE"
 
-if [[ $USER == "milfeld" ]]; then
-echo ""
-echo "************ TODO:  TACC SPECIFIC  STOCKYARD  (mitigate, to utils) "
-echo ""
-fi
-
 if [[ ${BASH_SOURCE[0]} =~ [^[:space:]] ]]; then
    BASE_DIR="$(dirname "${BASH_SOURCE[0]}")"
    source $BASE_DIR/mkmod_utils

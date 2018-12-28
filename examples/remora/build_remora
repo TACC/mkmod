@@ -1,32 +1,25 @@
 #!/bin/bash
 
-# You can just execute this file, or cut and past commands.
-#
-# Real World Example with mkmod
-# Make sure mkmod is installed and is loaded.
-# (See docs/INSTALL)
-#  
+# Building and Install remora: a performance monitor tool from TACC:
 
-# Features:  Inserts a help-message from a "modules_help" file.
-#            NOTE:  modules_help uses VER (version) variable inside the help message.
-#            Includes the required remora environment variables in the modulefile.
+# This file exists in the mkmod examples directory. If mkmod is accessible:
+# the directory path is:  echo $(dirname `which mkmod`)/../examples/remora
 
 
-# 1.) cd $WORK             #cd to a directory where you want to install remora.
-#                          #at TACC we use $WORK; others, use something appropriate.
-# 
-#                          ------------------------------------------------
-#                          <path>="mkmod directory" where these files exist
-#                          (build_remora, mkmod_remora)
-#
-#                          TO FIND <path>, execute:
-#
-#                          echo $(dirname `which mkmod`)/../examples/remora
-#                          ------------------------------------------------
-#
-# 2.) <path>/build_remora  #execute this script in your present directory:
-#                          #
-# 3.) <path>/mkmod_remora  #execute the mkmod_remora command (from anyplace)
+#  INSTALLATION:
+
+#    a.) cd to a build/install directory
+#        (e.g. mkdir $HOME/apps; cd $HOME/apps) @TACC maybe use $WORK for $HOME
+
+
+#    b.) get TACC distro:  git clone https://github.com/tacc/remora
+#    c.) cd to remora:     cd remora
+#    d.) INSTALL:          ./install.sh
+
+#    For mkmod
+#    e.) Set 3 variables required by mkmod.
+#    f.) Execute the mkmod_remora script-- executes mkmod.
+
 
 # Get the remora performance monitor from TACC:
 
@@ -36,17 +29,15 @@
          cd remora
          ./install.sh
 
-         echo " You will NOT need to set/export the remora variables above."
-         echo " These will be included in the modulefile by environment variable "
-         echo " set in mkmod_remora, before executing mkmod."
          echo ""
-         echo " First, set the 3 primary variables mkmod always requires."
+         echo " DON'T WORRY ABOUT ABOVE EXPORT COMMANDS--mkmod will handle those."
+         echo ""
+         echo " Set these 3 primary variables required by mkmod."
          echo " (You can copy and paste all three at once onto the command line.)"
          echo ""
          echo "    export TOPDIR=`pwd`"
          echo "    export    VER=`grep -Po 'VERSION=\K[0-9.]*' install.sh`"
          echo "    export   NAME=remora"
          echo ""
-         echo " Now review and execute the mkmod_remora (found in the build_remora directory)"
-         echo " It sets environment variables to be use by mkmod, the ones above, and more."
+         echo " Next, execute the commands in  the mkmod_remora file-- from any directory."
 

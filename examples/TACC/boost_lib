@@ -1,14 +1,16 @@
-#0!/bin/bash
+#!/bin/bash
 
-# Real World Example with mkmod
+# Real World Example with mkmod for BOOST library.
+# Note: you can have your own custom modulefile for system-installed libraries!
+#       Just remove "my_boost" from your modulefiles directory when finished.
+#
 # Make sure you have made a modulefile for mkmod and have loaded it.
-# (See docs/INSTALL)
 
 
 # Features:  using whatis
 #            APP Environment Variable  (ENV1)
 #            module "conflict" command (CMD1)
-#            user-defined prepend to MANPATH (manpath_list)
+#            user-defined prepend to MANPATH (MANPATH_LIST)
 #            user-defined compiler/mpi prereqs (COMPILER_PREREQ, MPI_PREREQ)
 
 DIR=/opt/apps/intel18/impi18_0/boost/1.66
@@ -28,11 +30,11 @@ export \
     
    export  ENV1="BOOST_ROOT=$DIR"
    export  CMD1="conflict(\"boost\",\"boost-mpi\")"
-   export  manpath_list="$DIR/share/man"
+   export  MANPATH_LIST="$DIR/share/man"
    export  COMPILER_PREREQ="intel/18.0.0"
    export  MPI_PREREQ="impi/18.0.0"
 
-   export  topdir_path_list="bin sbin"
+   export  TOPDIR_PATH_LIST="bin sbin"
 
    mkmod
 

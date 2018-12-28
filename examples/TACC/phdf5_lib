@@ -1,14 +1,16 @@
 #!/bin/bash
 
-# Make sure you have made a modulefile for mkmod and have loaded it.
-# (See docs/INSTALL)
+# Real World Example with mkmod for pHDF5 library.
+# Note: you can have your own custom modulefile for system-installed libraries!
+#       Just remove "my_phdf5" from your modulefiles directory when finished.
+
 #
 # FEATURES:
 #           Insert user-defined help message text for compiling/loading (HELP_MESSAGE)
 #           Insert whatis strings  (WHATIS)
 
-#********* NOTE  mic system is no longer at TACC  ******
-#********* ALL the complicated rpm logic is not needed *****
+#********* NOTE  mic system is no longer available at TACC  ******
+#********* ALL the complicated rpm logic is no longer needed *****
 
 DIR=/opt/apps/intel18/impi18_0/phdf5/1.8.16/x86_64
 

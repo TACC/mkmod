@@ -1,7 +1,11 @@
 #!/bin/bash
 
+# Real World Example with mkmod for MOOSE Application.
+# Note: you can have your own custom modulefile for system-installed libraries!
+#       Just remove "my_moose" from your modulefiles directory when finished.
+#
 # Make sure you have made a modulefile for mkmod and have loaded it.
-# (See docs/INSTALL)
+
 
 # FEATURE: Insert user-defined ENV VAR for APP directory  (ENV1)
 #          Insert whatis module statements                (WHATIS)
