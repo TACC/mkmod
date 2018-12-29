@@ -1,4 +1,4 @@
-[![Documentation Status](https://readthedocs.org/projects/mkmod/badge/?version=v2.1)] (https://mkmod.readthedocs.io/en/latest/?badge=v2.1)
+[![Documentation Status](https://readthedocs.org/projects/mkmod/badge/?version=latest)] (https://mkmod.readthedocs.io/en/latest/)
 
 # mkmod Documentation
 
@@ -6,9 +6,9 @@
 Kent Milfeld  (<mailto:milfeld@tacc.utexas.edu> include mkmod in subject)
 
 ## mkmod Web Sites
-* Documentation:   https://mkmod.readthedocs.org
-* Github:          https://github.com/TACC/mkmod
-* TACC Homepage:   https://www.tacc.utexas.edu/research-development/tacc-projects/mkmod
+* Read the Doc:  https://mkmod.readthedocs.org
+* Github:        https://github.com/TACC/mkmod
+* TACC Homepage: https://www.tacc.utexas.edu/research-development/tacc-projects/mkmod
 
 ## Description
 Automatically creates and installs a basic modulefile for an installed package,
@@ -23,8 +23,8 @@ To get access to the mkmod source code clone this repository:
     git clone https://github.com/tacc/mkmod
 
 ## User Documentation
-[Webpages]( https://mkmod.readthedocs.org)
-[PDF]( https://mkmod.readthedocs.org)
+[Webpages](https://mkmod.readthedocs.io/en/latest/)
+[PDF](https://media.readthedocs.org/pdf/mkmod/latest/mkmod.pdf)
 
 
 ----------------------------------------------------------------------------
