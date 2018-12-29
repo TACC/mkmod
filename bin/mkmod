@@ -21,6 +21,8 @@ fi
 MKMOD_HELP=$(sed 's/^#//' <<'EOF'
 #  mkmod builds & inserts a modulefile in $HOME/modulefiles.
 #
+#  Document: https://mkmod.readthedocs.io/en/latest/?badge=latest
+#
 #  The minimal work a user must do is export 3 variables and call mkmod.
 #
 #  e.g.  NAME=tau
@@ -33,7 +35,7 @@ MKMOD_HELP=$(sed 's/^#//' <<'EOF'
 #
 #  NAME   is the name of the package, less the version number.
 #  VER    is the version of the package, usually found in the package name.
-#  TOPDIR is the "top level directory" of the package (e.g. $HOME/tau-2.26.2p1)
+#  TOPDIR is the "top level directory" of the package (e.g. $HOME/apps/tau-2.26.2p1)
 #
 #       Set MODULEFILE_DIR if you don't want to use $HOME/modulefiles.
 #
@@ -43,14 +45,15 @@ MKMOD_HELP=$(sed 's/^#//' <<'EOF'
 #       compiler and MPI will need to be available (loaded) when you load your module-- 
 #       which will probably be of no concern for most situations.
 #  
+# SUMMARY:
 #  FEATURES - module creation
 #       * Auto sets module name to my_<name>/<ver>
 #       * Auto sets MY_<NAME>_<dir> Env Vars (dir=DOC/LIB/SHR/BIN/INC/DAT/EXM/TUT/TOL/DIR)
-#                                            (these are called distro_dirs)
-#                                            (use PREFIX=<whatever> in lieu of MY_/my_)
-#       * Auto sets PATH/LD_LIB_PATH/MANPATH/PYTHONPATH
+#                                            (these are called distro_dirs, or convenience vars)
+#                                            (use PREFIX=<whatever> in lieu of MY_/my_, or "")
+#       * Auto sets PATH/LD_LIB_PATH/MANPATH/PYTHONPATH/PKG_CONFIG_PATH (PATH-type vars)
 #       * Auto sets prereq (to whatever comp/mpi is loaded) and sets family
-#       * Auto creates help_message: lists distro_dirs  & paths env var names & vals.
+#       * Auto creates help_message: lists distro_dirs  & PATH-type env var names & vals.
 #                                    lists module command and pkg version.
 #       * HELP_MESSAGE (env var)     included in help_message (e.g. loader instructions)
 #       * help_message (file)        if found, includes file (does variable replacement).
@@ -74,17 +77,17 @@ MKMOD_HELP=$(sed 's/^#//' <<'EOF'
 #       6.)     AUTO_PREREQ          (set to "none" avoid auto setting compiler/mpi prereqs.)
 #       7.)          PREREQ          (sets prereqs -- space separated list)
 #
-#       8.) PREFIX                   (default= MY_|my_)
+#       8.) PREFIX                   (default= MY_|my_ for conveience vars, modulefile name, for none use "")
 #       9.) FAMILY                   (default= NAME, set to "" for no family)
 #
 #      10.) HELP_FILE                (default= finds modules_help file relative to $TOPDIR, use this 
-#                                              var to set path and name for your own help file.
+#                                              var to set pathname for your own help file.
 #                                              Set to "none" to avoid searching for file. 
 #      11.) WHATIS_FILE              (default= finds whatis_help file relative to $TOPDIR, use this 
-#                                              var to set path and name for your own whatis file.
+#                                              var to set pathname for your own whatis file.
 #                                              Set to "none" to avoid searching for file. 
-#      12.) MODULEFILE_FILE          (default= finds modulefile.lua|tcl file relative to $TOPDIR, use
-#                                              this var to set path and name for your own help file.
+#      12.) MODULEFILE_FILE          (default= finds modulefile.lua (nosuffix=tcl) file relative to $TOPDIR,
+#                                              use this var to set pathname for your own help file.
 #                                              Set to "none" to avoid searching for file. 
 #      13.) USE_IN_SHELLRC           (if "none", no .<shell>rc check and insert-- e.g. use for RPMS)
 #      14.) MKMOD_DEBUG              (if set, modulefile goes to std out, no check and insert of .<shell>rc)
@@ -92,35 +95,40 @@ MKMOD_HELP=$(sed 's/^#//' <<'EOF'
 #  
 #       PATHS -- RELATIVE to TOPDIR
 #  
-#           TOPDIR_PATH_LIST         (e.g. ="x86_64/bin:share/bin")        # colon separated list
-#           TOPDIR_LDPATH_LIST       (e.g. ="x86_64/libraries/linpack")    # "
-#           TOPDIR_MANPATH_LIST      (e.g. ="man:linpack/man otherpkg/man")# "
-#           TOPDIR_PYTHONPATH_LIST   (e.g. ="share/pkgs/python")           # "
+#          TOPDIR_PATH_LIST         (e.g. ="x86_64/bin:share/bin")        # colon separated list
+#          TOPDIR_LDPATH_LIST       (e.g. ="x86_64/libraries/linpack")    # 
+#          TOPDIR_MANPATH_LIST      (e.g. ="man:linpack/man otherpkg/man")# 
+#          TOPDIR_PYTHONPATH_LIST   (e.g. ="share/pkgs/python")           # 
 #  
 #       PATHS -- FULL
 #  
-#           PATH_LIST                (e.g. path_list="/sbin:/home1/1234/charles/bin") #colon separated
-#           LDPATH_LIST              (e.g. ldpath_list="/opt/apps/papi/5.6.0/lib")       # "
-#           MANPATH_LIST             (e.g. ="/dell/srvadmin/share/man:/intel/man")       # "
-#           PYTHONPATH_LIST          (e.g. ="$HOME/python:/share/projects/google/python")# "
+#          PATH_LIST                (e.g. path_list="/sbin:/home1/1234/charles/bin")    #colon separated
+#          LDPATH_LIST              (e.g. ldpath_list="/opt/apps/papi/5.6.0/lib")       #
+#          MANPATH_LIST             (e.g. ="/dell/srvadmin/share/man:/intel/man")       #
+#          PYTHONPATH_LIST          (e.g. ="$HOME/python:/share/projects/google/python")#
 #  
 #       PREREQUISITES -- must be loaded
 #  
-#           PREREQ                   (space separated list)
+#          PREREQ                   (space separated list)
 #  
 #  
 #       WHATIS   (not automatic)
 #  
-#           WHATIS                   (@-separated list. e.g.
+#          WHATIS                   (@-separated list. e.g.
 #                                     WHATIS="Name: PETSc @ Version: 3.8 @ Category: lib")
+#           or
+#          WHATIS1="<val1>"         (e.g. WHATIS1="Name:   PETSc")
+#          WHATIS2="<val2>"         (e.g. WHATIS2="Version:  3.8")
+#          WHATIS3="<val3>"         (e.g. WHATIS3="Category: lib")
+#          ...                      ...
+#          WHATIS<#>="<val#>"       (e.g. WHATIS30="whatever: value)  up to 30
 #  
 #      ENVIROMENT -- VARIABLES       (also displayed in the help message)
 #  
 #          ENV1="<val1>"             (e.g. ENV1="TAU=$TOPDIR/x86_64/bin")
 #          ENV2="<val2>"             (e.g. ENV2="GET_TIME_OF_DAY:PAPI_TOT_CYC:PAPI_L2_LDM")
-#          ENV3="<val3>"
 #  
-#      COMMANDS -- LUA statements
+#      COMMANDS -- Lua/Tcl statements
 #  
 #          CMD1="<cmd1>"             (e.g.LMOD CMD1="conflict(\"boost\",\"boost-mpi\")" )
 #          CMD2="<cmd2>"             (e.g.LMOD CMD2="load(\"hdf5\")" )
@@ -128,65 +136,24 @@ MKMOD_HELP=$(sed 's/^#//' <<'EOF'
 #          CMD1="<cmd1>"             (e.g.TMOD CMD1="conflict boost boost-mpi" )
 #          CMD2="<cmd2>"             (e.g.TMOD CMD2="load  hdf5" )
 #  
-#  COMPONENTS - order
+#  Modulefile Content - order
 #    1.) Help Message (see default, or contents of help_message file)
 #    2.) whatis       (none by default, use WHATIS env var)
 #    3.) family       (default $NAME_sml, use FAMILY env var)
 #    4.) prereq's     (default=loaded Compiler/MPI, use COMPILER_PREREQ|MPI_PREREQ)
 #    5.) prereq's     (Explicitly set)
 #    6.) local topdir (definition for $TOPDIR)
-#    7.) prepends     (from topdir_path|ldpath|manpath|pythonpath_list) 
-#    8.) prepends     (from full path path|ldpath|manpath|pythonpath_list) 
+#    7.) prepends     (in TOPDIR: topdir_ + PATH_LIST|LDPATH_LIST|MANPATH_LIST|PYTHONPATH_LIST|PKGCONFIGPATH_LIST) 
+#    8.) prepends     (using full path:     PATH_LIST|LDPATH_LIST|MANPATH_LIST|PYTHONPATH_LIST|PKGCONFIG_PATH_LIST) 
 #    9.) setenv       (from ENV1, ENV2, ..., ENV30 )
-#   10.) LUA cmds     (from CMD1, CMD2, ..., CMD30)
+#   10.) Lua|Tcl cmds (from CMD1, CMD2, ..., CMD30)
 #
-#  TUTORIAL - module (LMOD)  details
-#     tinyurl.com/chpc-2017-tools  (download CHPC_2017_lmod_28.pdf)
 #
-#                                                 author:  Kent Milfeld 2018_03_07
+#                                                 author:  Kent Milfeld 2018_12_29
 #  ------
 
 EOF
 )
-
-# New Features  Version 1.0
-#     Explicitly defined prereqs support               2018_01_29
-#     TMOD support (by FLAVOR: lmod or tmod )          2018_02_29
-#                  (automatically determined )
-#     WHATIS_FILE support                              2018_03_29
-#     makefile, to install mkmod and make its module   2018_03_05
-#     New mkmod_utils for env. var substitution        2018_04_04
-#     Remove /tmp temporary files after use            2018_04_05
-#     Use $BASH_SOURCE directory for mkmod_utils       2018_04_17
-#     "module use" in startup files supported 
-#     for bash, csh,tcsh and zsh shells.               2018_04_18
-#     Allow none for WHATIS|HELP_FILE to avoid search  2018_04_18
-#
-# New Features  Version 2.0
-#     reset lists all set env vars used by mkmod       2018_06_21
-#     use export MKMOD=reset | mkmod reset|-r|--reset
-#     `mkmod reset` unsets any set vars for any shell
-#
-#     "module use $HOME/mkmodfiles" insertions works   2018_06_21
-#     for tcsh|csh, bash and zsh.
-#     Use STARTUP_FILE_SUFFIX if startups need suffix.
-#     SITE and SITE_STARTUP_FILE_SUFFIX lists (e.g. NERSC)
-#     provide site suffixes.
-#
-#     Pseudo Unit Tests.  Allows setting lmod|tmod flavor,
-#     and site, login shell (bash|tcsh|csh|zsh) for checking
-#     flavors, and startup shells, respectively.       2018_07_07
-#   
-# TODO -- allow just module creation or just module use insertion
-# TODO -- still has some TACCism that should be generalized (e.g. $WORK directory)
-# TODO -- find "doc" in TOPDIR/share/doc (and man)
-#tmod https://github.com/cea-hpc/modules/blob/master/doc/paper/MC2_whitney_paper.pdf
-#
-# New Features  Version 2.1
-#     If arguments are not understood, print help and exit.
-
-#     for PATHS (e.g. TOPDIR_PATH_LIST, TOPDIR_LD_LIBRARY_PATH_LIST)
-#     require a colon (:) separated list (changed from space separated list)
 
 #                       Lmod and and Tmod divisions markers (mv this to section later)
 t_divider="  "

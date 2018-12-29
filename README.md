@@ -1,7 +1,6 @@
 [![Documentation Status](https://readthedocs.org/projects/mkmod/badge/?version=v2.1)] (https://mkmod.readthedocs.io/en/latest/?badge=v2.1)
 
-# mkmod Documentation               {#mainpage}
-
+# mkmod Documentation
 
 ## Developers and Maintainers
 Kent Milfeld  (<mailto:milfeld@tacc.utexas.edu> include mkmod in subject)
@@ -24,7 +23,8 @@ To get access to the mkmod source code clone this repository:
     git clone https://github.com/tacc/mkmod
 
 ## User Documentation
-(https://readthedocs.org/projects/mkmod/badge/?version=v2.1)] (https://mkmod.readthedocs.io/en/latest/?badge=v2.1)
+[Webpages]( https://mkmod.readthedocs.org)
+[PDF]( https://mkmod.readthedocs.org)
 
 
 ----------------------------------------------------------------------------
