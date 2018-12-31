@@ -12,16 +12,16 @@ modulefiles.
 
 Indirectly, developers already contribute to a consistency by 
 using directory names consistent with the Filesystem Hierarchy Standard,
-FHS_ (also `Wikipedia FHS`_ page.).
+FHS_ (also content in `Wikipedia FHS`).
 See /usr directory in Filesystem Hierarchy Standard (bin, lib, include, etc.).
 
 Directly, developers can contribute by providing basic package
-information that can be included in whatis modulefile entries
-(key-value pairs), shown in the examples above. Mkmod searches
+information that can be included in  *whatis* modulefile entries
+(key-value pairs), as shown in the examples above. Mkmod searches
 for a file named ``modules_what`` (and provides variable substitution,
 which shouldn't be necessary for package-provided information).
-At TACC the Name, Version, Category, Keywords, URL and 
-Description keywords (and values) are included in all modulefiles so that
+At TACC, the *Name*, *Version*, *Category*, *URL* and 
+*Description* keywords (and values) are included in all modulefiles so that
 a software catalogue can be built, from the *key:value* pairs
 in all the installed modulefiles. The following example shows
 the content of a ``modules_whatis`` file that would provide sites

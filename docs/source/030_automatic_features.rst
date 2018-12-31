@@ -1,7 +1,7 @@
 Automatic Features
 ------------------
 
-The basic function of the mkmod modulefile generation component
+The basic function of the modulefile generation component in mkmod
 is to determine the flavor of the Modules Environment System (Tcl or Lua), 
 investigate the directories and files in the ``$TOPDIR`` directory, 
 and construct appropriate module commands to create an environment for

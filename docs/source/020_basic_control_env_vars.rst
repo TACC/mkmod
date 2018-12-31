@@ -4,8 +4,8 @@ Basic Control with Environment Variables
 .. role:: raw-latex(raw)
    :format: latex
 
-Environment variables are used to control and include module commands in the modulefile generation.
-For a basic modulefile only the ``NAME``, ``VER`` and ``TOPDIR`` variables are required.
+Environment variables are used to control and include module commands during the modulefile generation.
+For a basic modulefile, only the ``NAME``, ``VER`` and ``TOPDIR`` variables are required.
 
 Required Environment Variables:
 
@@ -33,7 +33,7 @@ The ``NAME`` and ``VER`` values are used to make a modulefile in ``$HOME/modulef
 creates directory if it doesn't exist) with the pathname  ``$NAME/$VER``.  For the above input
 the created modulefile is ``$HOME/my_remora/1.8.2`` for a Tcl module system and ``$HOME/my_remora/1.8.2.lua``
 for a Lua module system. The content of the modulefile is derived from the directories and
-files within the ``$TOPDIR`` directory.  The command::
+files within the ``$TOPDIR`` directory, and the present environment.  The command::
 
       $ module load my_remora
       $ module load my_remora/1.8.1    # name and (optional) version used here
@@ -49,7 +49,7 @@ Otherwise you my want to specify no prefix for a simpler load command::
 There are a few details and best practices that users might find useful:
 
    Check the location of the mkmod modulefiles directory in the ``MODULEPATH`` variable.  
-   If it appears at the beginning, then the ``module use <modulefiles_dir>`` 
+   If it appears at the beginning, then the ``module use <modulefiles_dir>`` command
    in your startup directory is appropriately appending to the ``MODULEPATH``
    variable (as designed). 
    In this case, if you use no prefix (export ``PREFIX=""``) your modulefile 
@@ -82,9 +82,6 @@ There are a few details and best practices that users might find useful:
      mkmod is seeing, then execute:
      ``mkmod -r`` to display what it will be using.
      (The list is preceded by an *unset command*, so it can be executed, as shown next.)
-   * To start all over again setting mkmod environment variables, excute:
+   * To start all over again setting mkmod environment variables, execute:
      ```mkmod -r``` in a bash/zsh shell (``eval`` ```mkmod -r```  for csh-type shells).  
      The backticks specify execution of the output from ``mkmod -r``.
-
-(Remora also needs the ```REMORA_BIN``` variable set for full operation, as shown in the next section 
-:ref:`Use Cases for HPC Users <remorabin>`.)

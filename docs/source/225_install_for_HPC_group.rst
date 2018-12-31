@@ -1,21 +1,21 @@
 Installation for HPC Groups
 ---------------------------
 
-If you install packages for a group research team, you probably
+If you install packages for a research group, you probably
 don't want the software in your ``HOME`` directory, and you want 
-the modulefiles for the package accessible by members of the Unix group.
+the modulefiles for the package accessible by other members of a Unix group.
 
 First, set ``MODULEFILES_DIR`` to change the default (``$HOME/modulefiles``) 
 to ``$MODULEFILES_DIR/modulefiles``. 
 Also, set ``GROUP_ACCESS`` to ``yes`` to allow users of your primary group to access your modulefiles.  
 (Of course, they will need to include ``module use <path_to_your_modulefiles_dir>``
-in their startup file. Copy and send your startup script commands to them.) 
+in their startup file. Copy and send your ``module use <dir.>`` startup script commands to them.) 
 Set the GROUP variable to a non-primary group value if necessary.
 
 The following example installs mkmod in the $WORK/apps directory and specifies
 $WORK to be the location of the modulefiles directory, and gives primary group
 access to the modulefile (and appropriate directory path component); 
-and mkmod will be the modulefile name *mkmod* 
+and *mkmod* will be the modulefile name for mkmod 
 (not ``my_mkmod``) because ``PREFIX=""``::
 
          $ export        INSTALL_DIR=$WORK/apps   

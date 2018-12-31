@@ -31,19 +31,19 @@ from appropriate values set in the ``NAME``, ``VER`` and ``TOPDIR`` environment 
 Mkmod has advanced features, accessible by setting other environment variables--
 to accommodate the more sophisticated needs of some package environments. 
 
-Mkmod also installs the generated modulefile in a ``modulefiles`` directory. It includes the
+Mkmod installs the generated modulefile in a ``modulefiles`` directory. It includes the
 ``module use .../modulefiles`` command in appropriate startup files, directing 
 MES to be aware of the mkmod installed modulefiles.
 
 Other capabilities are available for developers who want to provide a modulefile 
-for automatic installation, or at least help and whatis components of a modulefile
-for users and site managers to include in there modulefile installation.
+for automatic installation, or at least provide *help* and *whatis* components of a
+modulefile for users and site managers to include in there modulefile installation.
 
 Guide for HPC Users
 ^^^^^^^^^^^^^^^^^^^
 
-The easiest way to get started is to follow one of the use cases, using 
-a package that is already installed for practice. For cleanup, just
+The easiest way to get started is to follow one of the use cases, using,
+for practice, a package that is already installed. For cleanup, just
 remove the modulefile from your ``modulesfiles`` directory.
 
 .. toctree::

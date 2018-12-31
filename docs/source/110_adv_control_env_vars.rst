@@ -28,14 +28,14 @@ For example, here is how to use ``PATH_LIST`` to add a directory to ``PATH``::
 
           $ export PATH_LIST="$HOME/bin/my_remora_utils"
 
-The ``my_remora_utils path`` is prepended to the PATH variable (after prepending 
+The ``$HOME/bin/my_remora_utils`` path is prepended to the PATH variable (after prepending 
 ``$TOPDIR/bin`` or ``$TOPDIR/scripts`` directories if either or both have been 
 automatically detected by mkmod).
 
 To turn off automatic detection, and to insert paths into PATH-type variables for directories
-that exist relative to ``$TOPDIR``, manually specify a directory set for a
-``TOPDIR_PATH_LIST``, ``TOPDIR_LD_LIBRARY_PATH_LIST``, ``TOPDIR_MANPATH_LIST``, or
-``TOPDIR_PYTHONPATH_LIST`` variable (as a colon-separated list). 
+that exist relative to ``$TOPDIR``, manually specify a directory (or set of directories) using 
+an appropriate ``TOPDIR_PATH_LIST``, ``TOPDIR_LD_LIBRARY_PATH_LIST``, ``TOPDIR_MANPATH_LIST``, or
+``TOPDIR_PYTHONPATH_LIST`` variable (as a colon-separated list, for a set). 
 
 This example manually specifies PATH-type subdirectories relative to $TOPDIR::
 

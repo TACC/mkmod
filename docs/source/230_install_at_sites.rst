@@ -15,9 +15,9 @@ When the ``INSTALL_SITE`` variable is set, it turns off the insertion
 of  ``module use <dir>`` command in startup scripts, and eliminates appending a prefix
 to the modulefile name (by internally setting ``PREFIX`` to ``""``). 
 
-See the *INSTALL* text in the mkmod directory for the specifics of the install commands.
+See the INSTALL text in the mkmod directory for the specifics of the install commands.
 
-The folowing example site installation commands intall mkmod and a mkmod modulefile::
+The folowing example site installation commands intall ``mkmod`` and a mkmod modulefile::
 
 
       $ git    clone https://github.com/tacc/mkmod
