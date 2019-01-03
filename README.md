@@ -1,4 +1,4 @@
-[![Documentation Status](https://readthedocs.org/projects/mkmod/badge/?version=latest)] (https://mkmod.readthedocs.io/en/latest/)
+[![Documentation Status](https://readthedocs.org/projects/mkmod/badge/?version=latest)](https://mkmod.readthedocs.io/en/latest/)
 
 # mkmod Documentation
 
