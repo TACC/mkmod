@@ -29,7 +29,7 @@ requiring only a ``make`` execution.
 
 A basic modulefile is automatically generated for an installed package 
 from appropriate values set in the ``NAME``, ``VER`` and ``TOPDIR`` environment variables.
-Mkmod has advanced features, accessible by setting other environment variables|minus|\ |minus\
+Mkmod has advanced features, accessible by setting other environment variables\\-\\-
 to accommodate the more sophisticated needs of some package environments. 
 
 Mkmod installs the generated modulefile in a ``modulefiles`` directory. It includes the
