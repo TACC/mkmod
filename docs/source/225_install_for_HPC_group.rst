@@ -18,24 +18,24 @@ access to the modulefile (and appropriate directory path component);
 and *mkmod* will be the modulefile name for mkmod 
 (not ``my_mkmod``) because ``PREFIX=""``::
 
-         $ export        INSTALL_DIR=$WORK/apps   
-         $ export    MODULEFILES_DIR=$WORK
-         $ export       GROUP_ACCESS=yes
-
-         $ export             PREFIX=""
-
-         $ git clone https://github.com/tacc/mkmod
-         $ cd mkmod
-         $ make
-
-         $ # ... If installing  packages at a later date, DON't FORGET
-         $ # ... to set MODULEFILES_DIR and GROUP_ACCESS; if you forget
-         $ # ... just remove the modulefile, set variables, and execute mkmod
-
-         $ export    MODULEFILES_DIR=$WORK
-         $ export       GROUP_ACCESS=yes
-         $ export   NAME=new_pakage VER=1.0 TOPDIR=$WORK/apps/new_package
-         $ mkmod
+          $ export        INSTALL_DIR=$WORK/apps   
+          $ export    MODULEFILES_DIR=$WORK
+          $ export       GROUP_ACCESS=yes
+ 
+          $ export             PREFIX=""
+ 
+          $ git clone https://github.com/tacc/mkmod
+          $ cd mkmod
+          $ make
+ 
+          $ # ... If installing  packages at a later date, DON't FORGET
+          $ # ... to set MODULEFILES_DIR and GROUP_ACCESS; if you forget
+          $ # ... just remove the modulefile, set variables, and execute mkmod
+ 
+          $ export    MODULEFILES_DIR=$WORK
+          $ export       GROUP_ACCESS=yes
+          $ export   NAME=new_pakage VER=1.0 TOPDIR=$WORK/apps/new_package
+          $ mkmod
 
            
 

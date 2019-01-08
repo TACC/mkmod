@@ -7,6 +7,7 @@ mkmod: Makes modulefile for Installed Software Package
 .. image:: mkmod_logo.png
    :scale: 70
    :align: right
+.. include:: <isotech.txt>
 
 PURPOSE
 ^^^^^^^
@@ -22,22 +23,22 @@ OVERVIEW
 
 The mkmod utility was designed to allow users, who install their own package, 
 to automatically create and install a basic modulefile for their installed package.
-Requirements are: Tcl/Lua Module Environment System (MES).  
+Requirements are: Tcl/Lua Environment Module System (EMS).  
 If mkmod is not available on the system, installation in user-space is simple, 
 requiring only a ``make`` execution.
 
 A basic modulefile is automatically generated for an installed package 
 from appropriate values set in the ``NAME``, ``VER`` and ``TOPDIR`` environment variables.
-Mkmod has advanced features, accessible by setting other environment variables--
+Mkmod has advanced features, accessible by setting other environment variables|minus|\ |minus\
 to accommodate the more sophisticated needs of some package environments. 
 
 Mkmod installs the generated modulefile in a ``modulefiles`` directory. It includes the
-``module use .../modulefiles`` command in appropriate startup files, directing 
-MES to be aware of the mkmod installed modulefiles.
+``module use $HOME/modulefiles`` command in appropriate startup files, directing 
+EMS to be aware of the mkmod installed modulefiles.
 
 Other capabilities are available for developers who want to provide a modulefile 
 for automatic installation, or at least provide *help* and *whatis* components of a
-modulefile for users and site managers to include in there modulefile installation.
+modulefile for users and site managers to include in their modulefile installation.
 
 Guide for HPC Users
 ^^^^^^^^^^^^^^^^^^^
@@ -83,7 +84,7 @@ To Be Included Later
 #. Logic Flow in mkmod code
 #. PKGCONFIG_LIST
 
-Indices and tables
+Indices and Tables
 ==================
 
 * :ref:`genindex`

@@ -17,14 +17,14 @@ to the modulefile name (by internally setting ``PREFIX`` to ``""``).
 
 See the INSTALL text in the mkmod directory for the specifics of the install commands.
 
-The folowing example site installation commands intall ``mkmod`` and a mkmod modulefile::
+The folowing site installation commands install ``mkmod`` and a mkmod modulefile::
 
 
-      $ git    clone https://github.com/tacc/mkmod
-      $ cd     mkmod
+          $ git    clone https://github.com/tacc/mkmod
+          $ cd     mkmod
 
-      $ export    INSTALL_DIR=/opt/apps/mkmod
-      $ export MODULEFILE_DIR=/opt/apps/modulefiles
-      $ export   INSTALL_SITE=TACC
+          $ export    INSTALL_DIR=/opt/apps/mkmod
+          $ export MODULEFILE_DIR=/opt/apps/modulefiles
+          $ export   INSTALL_SITE=TACC
 
-      $ make   #uses itself to install and create a my_mkmod modulefile
+          $ make   #uses itself to install and create a my_mkmod modulefile

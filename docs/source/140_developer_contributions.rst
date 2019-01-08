@@ -4,8 +4,8 @@ Developer Contributions
 Often package installers at HPC sites have a difficult time figuring out
 what should be in the modulefiles, in terms of information and the
 environment variable setting they want the package to have.  
-And often there is no consistency among what and how installers 
-provide in modulefiles.
+Often there is no consistency in the content and/or format
+in the modulefiles.
 
 Developers can indirectly and directly contribute to the content of
 modulefiles.

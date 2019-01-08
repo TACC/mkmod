@@ -30,16 +30,16 @@ Also, ``NAME``, ``VER`` and ``TOPDIR`` variables are set as usual; and the ``ENV
 variable is set to a *name=value pair* (``REMORA_BIN=$TOPDIR/bin``) for mkmod to set 
 the `REMORA_BIN`` environment variable to ``$TOPDIR/bin`` in the modulefile::
 
-        # finished installing remora, with compiler and mpi module loaded
+          # finished installing remora, with compiler and mpi module loaded
 
-        $ export SITE_INSTALL=TACC
-        $ export MODULEFILES_DIR=/opt/apps/modulefiles
+          $ export SITE_INSTALL=TACC
+          $ export MODULEFILES_DIR=/opt/apps/modulefiles
 
-        $ export NAME=remora VER=1.8.1 TOPDIR=/opt/apps/$NAME/$VER
+          $ export NAME=remora VER=1.8.1 TOPDIR=/opt/apps/$NAME/$VER
 
-        $ export ENV1="REMORA_BIN=$TOPDIR/bin"
+          $ export ENV1="REMORA_BIN=$TOPDIR/bin"
 
-        $ mkmod
+          $ mkmod
 
 The compiler and MPI modules loaded at this time (for the remora install,
 and subsequent mkmod execution) are set as prerequisites.
@@ -106,7 +106,7 @@ as a ``WHATIS#`` variable, like this::
         export WHATIS6="Description: Numerical library for sparse linear algebra"
 
 Note: the installation tree is in ``/home1/apps``, while the modulefile is 
-in ``/opt/apps``.  The site hierarchically structure is indicated in the pathnames.
+in ``/opt/apps``.  The site hierarchical structure is indicated in the pathnames.
 
 Case 3
 ^^^^^^
@@ -148,35 +148,35 @@ in the help file below.
 holding directory names, are not available for evaluation). 
 The two information files are listed here::
 
-        $ cat my_local_whatis_file
-
-           Name:        PHDF5
-           Version:     $VER
-           Category:    library, runtime support
-           Keywords:    I/O, Library
-           URL:         http://www.hdfgroup.org/HDF5/
-           Description: file format library for storing data (Parallel Version)
-
-        $ cat my_local_help_file
-
-           Compile the source code with the option:
-
-               -I\$PHDF5_INC
-
-           and add the following options to the link step:
-
-               -Wl,-rpath,\$PHDF5_LIB -L\$PHDF5_LIB -lhdf5 -lz 
+          $ cat my_local_whatis_file
+  
+             Name:        PHDF5
+             Version:     $VER
+             Category:    library, runtime support
+             Keywords:    I/O, Library
+             URL:         http://www.hdfgroup.org/HDF5/
+             Description: file format library for storing data (Parallel Version)
+  
+          $ cat my_local_help_file
+  
+             Compile the source code with the option:
+  
+                 -I\$PHDF5_INC
+  
+             and add the following options to the link step:
+  
+                 -Wl,-rpath,\$PHDF5_LIB -L\$PHDF5_LIB -lhdf5 -lz 
 
 
 Mkmod also searches, relative to ``$TOPDIR``,
-for a files named ``modules_help`` and ``modules_whatis``. It appends the content of ``modules_help`` 
-to the automatic modulefile help message; and uses the key-value pairs in the ``modules_whatis`` 
+for files named ``modules_help`` and ``modules_whatis``. It appends the content of ``modules_help`` 
+to the automatic modulefile help message, and uses the key-value pairs in the ``modules_whatis`` 
 file for the modulefile *whatis* entries. The precedence is presented in the following table:
 
     HELP:
 
     ==================  ===========================   ===========================================
-    File/Env. Var.      location/value                Modulefile Help Message Contribution
+    File/Env. Var.      Location/Value                Modulefile Help Message Contribution
     ==================  ===========================   ===========================================
     modules_help        file name, found relative     Append content to  modulefile help message.
                         to $TOPDIR search
@@ -193,12 +193,11 @@ file for the modulefile *whatis* entries. The precedence is presented in the fol
     File/Env. Var.      Location/Value                whatis
     ==================  ===========================   ===========================================
     modules_whatis      file name, found relative     Read each line as a
-                        to $TOPDIR search             whatis key:value pair
+                        to $TOPDIR search             whatis key:value formatted pair.
     WHATIS_FILE         \=pathname (file)             Don't search for modules_whatis file,
-                                                      Read each line as a whatis key:value pair.
+                                                      Read each line as a whatis key:value format.
     WHATIS_FILE         \=none                        Don't search for modules_whatis file.
     WHATIS_MESSAGE      \="list of key:value pairs"   Only uses these as whatis values 
                         (@-separated list)            if no whatis file is being used.
     ==================  ===========================   ===========================================
-
 

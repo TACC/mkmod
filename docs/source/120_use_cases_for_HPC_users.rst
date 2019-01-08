@@ -23,18 +23,18 @@ something like this::
 The first two are automatically set by mkmod, but the ``REMORA_BIN`` variable
 should be specified by the name=value pair with the ``ENV1`` variable for mkmod::
 
-        $ export NAME=remora VER=1.8.1 TOPDIR=$WORK/APPS/remora
+          $ export NAME=remora VER=1.8.1 TOPDIR=$WORK/APPS/remora
 
-        $ export ENV1="REMORA_BIN=/work/johndoe/APPS/remora/bin"
+          $ export ENV1="REMORA_BIN=/work/johndoe/APPS/remora/bin"
 
 Preference variables might be set in the modulefile at this time, as shown
 here::
 
-        $ export ENV2="REMORA_VERBOSE=0"
-        $ export ENV3="REMORA_MODE=FULL"
-        $ export ENV4="REMORA_PERIOD=10"
+          $ export ENV2="REMORA_VERBOSE=0"
+          $ export ENV3="REMORA_MODE=FULL"
+          $ export ENV4="REMORA_PERIOD=10"
 
-        $ mkmod
+          $ mkmod
 
 Use Case 2
 ^^^^^^^^^^
@@ -45,12 +45,12 @@ PATH-type variable ``PKG_CONFIG_PATH``.  These can be accommodated with
 ``ENV#`` variables and appropriate *PATH-type_LIST* variables,
 as in this example::
 
-        $ export NAME=gromacs VER=2018.1 TOPDIR=$HOME/APPS/gromacs
+          $ export NAME=gromacs VER=2018.1 TOPDIR=$HOME/APPS/gromacs
 
-        $ export    ENV1="GMXLIB=$TOPDIR/share/gromacs/top"
-        $ export    ENV2="MY_GROMACS_DOC=$TOPDIR/share"
+          $ export    ENV1="GMXLIB=$TOPDIR/share/gromacs/top"
+          $ export    ENV2="MY_GROMACS_DOC=$TOPDIR/share"
 
-        $ export    PKGCONFIGPATH_LIST="$TOPDIR/lib/pkgconfig"
-        $ export          MANPATH_LIST="$TOPDIR/share/man"
+          $ export    PKGCONFIGPATH_LIST="$TOPDIR/lib/pkgconfig"
+          $ export          MANPATH_LIST="$TOPDIR/share/man"
 
-        $ mkmod
+          $ mkmod

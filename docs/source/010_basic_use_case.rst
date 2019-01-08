@@ -4,19 +4,19 @@ Basic Use Case
 Set ``NAME``, ``VER``, and ``TOPDIR`` environment variables to the *name*, *version*, and the *top level*
 directory of the application you installed, and execute mkmod.  Here is an example::
 
-      $ #<install remora: cd $HOME/apps 
-      $ #git clone https://github.com/tacc/remora; cd remora; install.sh >
+          $ #<install remora: cd $HOME/apps 
+          $ #git clone https://github.com/tacc/remora; cd remora; install.sh >
    
-      $ export NAME=remora  VER=1.8.2 TOPDIR=$HOME/apps/remora
-      $ mkmod
+          $ export NAME=remora  VER=1.8.2 TOPDIR=$HOME/apps/remora
+          $ mkmod
 
 This creates the modulefile ``$HOME/modulefiles/my_remora/1.8.2`` (or ``1.8.2.lua``),
 and makes sure that your startup file executes ``module use $HOME/modulefiles``
-so that the module environment system knows where to find your modulefiles.
+so that the Environment Module System knows where to find your modulefiles.
 
 Example: To load your remora environment, execute::
 
-      $ module load my_remora
+          $ module load my_remora
 
 (Remora also needs the ```REMORA_BIN``` variable set for full operation, as shown in the section
 :ref:`Use Cases for HPC Users <remorabin>`.)

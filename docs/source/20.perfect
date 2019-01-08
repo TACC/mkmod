@@ -35,16 +35,16 @@ the created modulefile is ``$HOME/my_remora/1.8.2`` for a Tcl module system and 
 for a Lua module system. The content of the modulefile is derived from the directories and
 files within the ``$TOPDIR`` directory.  The command::
 
-      $ module load my_remora
-      $ module load my_remora/1.8.1    # name and (optional) version used here
+          $ module load my_remora
+          $ module load my_remora/1.8.1    # name and (optional) version used here
 
 will load the module for the example remora installation. Retain the default prefix (``my_``) 
 if a version of the package is available in the Modules Environment System (MES), 
 so that their is no confusion or complication involving which environment you will obtain.
 Otherwise you my want to specify no prefix for a simpler load command::
 
-       $ module load remora            # PREFEX="" set before mkmod execution
-       $ module load remora/1.8.2      # PREFEX="" set before mkmod execution
+           $ module load remora            # PREFEX="" set before mkmod execution
+           $ module load remora/1.8.2      # PREFEX="" set before mkmod execution
 
 There are a few details and best practices that users might find useful:
 

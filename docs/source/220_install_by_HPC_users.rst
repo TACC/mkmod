@@ -11,14 +11,14 @@ See the INSTALL text in the mkmod directory for the specifics of the install com
 Any user-owned *build* and *install* directory are fine. Directories ``build`` and ``apps`` are 
 used below in this example of installation commands::
 
-        $ mkdir $HOME/build  $HOME/apps
-        $ cd    $HOME/build
+          $ mkdir $HOME/build  $HOME/apps
+          $ cd    $HOME/build
 
-        $ git    clone https://github.com/tacc/mkmod
-        $ cd     mkmod
+          $ git    clone https://github.com/tacc/mkmod
+          $ cd     mkmod
 
-        $ export INSTALL_DIR=$HOME/apps
-        $ make   #uses itself to install and create a my_mkmod modulefile
+          $ export INSTALL_DIR=$HOME/apps
+          $ make   #uses itself to install and create a my_mkmod modulefile
 
-        $ module load my_mkmod   #do after logout and login,
-                                 #to execute startup scripts
+          $ module load my_mkmod   #do after logout and login,
+                                   #to execute startup scripts

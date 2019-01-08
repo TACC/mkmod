@@ -51,9 +51,9 @@ This following example manually specifies PATH-type subdirectories as *absolute 
 and retains the automatic search and PATH-type insertions for top-level directories
 in ``$TOPDIR``::
 
-           export  LDPATH_LIST=$TOPDIR/x86_64/libraries/linpack
-           export MANPATH_LIST=$TOPDIR/share/man
-           export    PATH_LIST=$TOPDIR/tools/bin
+          $ export  LDPATH_LIST=$TOPDIR/x86_64/libraries/linpack
+          $ export MANPATH_LIST=$TOPDIR/share/man
+          $ export    PATH_LIST=$TOPDIR/tools/bin
 
 Note, ``$TOPDIR/bin`` will automatically be detected and inserted in PATH, because
 the non-prefixed (i.e. no ``TOPDIR_``) form of the variable, ``PATH_LIST``, is used.
