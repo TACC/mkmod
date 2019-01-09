@@ -11,8 +11,14 @@ and ``mkmod`` for site installations).
 
 The directory structure of the mkmod package is::
 
-           mkmod/makefile
            mkmod/INSTALL
+           mkmod/makefile
+
+           mkmod/README
+           mkmod/README.md
+           mkmod/todo.txt
+           mkmod/LICENSE
+
            mkmod/examples
            mkmod/docs
            mkmod/bin

@@ -15,7 +15,7 @@ to ``15`` and ``REMORA_BIN`` to ``$HOME/apps/remora/bin``, export these settings
           $ export ENV2="REMORA_BIN=$HOME/apps/remora/bin"
 
 Mkmod checks for the sequence of variables, ``ENV1``, ..., ``ENV``\ *n*, and creates package
-environment variables for the name=value pairs.
+environment variables for the ``name=value`` pairs.
 
 
 Mkmod (presently) only searches for PATH-type directories 
@@ -23,8 +23,9 @@ Mkmod (presently) only searches for PATH-type directories
 in the ``$TOPDIR`` (top level) directory.  
 
 To explicitly add additional paths to PATH-type variables, include them with the 
-``PATH_LIST``, ``LD_LIBRARY_PATH_LIST``, ``MANPATH_LIST``, and ``PYTHONPATH_LIST`` variables. 
-For example, here is how to use ``PATH_LIST`` to add a directory to ``PATH``::
+``PATH_LIST``, ``LDPATH_LIST``, ``MANPATH_LIST``, ``PYTHONPATH_LIST`` 
+and ``PKGCONFIGPATH_LIST`` variables. 
+For example, here is how to use ``PATH_LIST`` to **add** a directory to ``PATH``::
 
           $ export PATH_LIST="$HOME/bin/my_remora_utils"
 
@@ -34,8 +35,10 @@ automatically detected by mkmod).
 
 To turn off automatic detection, and to insert paths into PATH-type variables for directories
 that exist relative to ``$TOPDIR``, manually specify a directory (or set of directories) using 
-an appropriate ``TOPDIR_PATH_LIST``, ``TOPDIR_LD_LIBRARY_PATH_LIST``, ``TOPDIR_MANPATH_LIST``, or
-``TOPDIR_PYTHONPATH_LIST`` variable (as a colon-separated list, for a set). 
+an appropriate ``TOPDIR_`` prefixed variable:
+``TOPDIR_PATH_LIST``, ``TOPDIR_LDPATH_LIST``, ``TOPDIR_MANPATH_LIST``, 
+``TOPDIR_PYTHONPATH_LIST``, or ``TOPDIR_CHKCONFIGPATH_LIST`` variable 
+(as a colon-separated list, for a set). 
 
 This example manually specifies PATH-type subdirectories relative to $TOPDIR::
 

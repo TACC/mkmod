@@ -13,13 +13,13 @@ modulefiles.
 Indirectly, developers already contribute to a consistency by 
 using directory names consistent with the Filesystem Hierarchy Standard,
 FHS_ (also content in `Wikipedia FHS`).
-See /usr directory in Filesystem Hierarchy Standard (bin, lib, include, etc.).
+See /usr directory in the Filesystem Hierarchy Standard (bin, lib, include, etc.).
 
 Directly, developers can contribute by providing basic package
 information that can be included in  *whatis* modulefile entries
 (key-value pairs), as shown in the examples above. Mkmod searches
-for a file named ``modules_what`` (and provides variable substitution,
-which shouldn't be necessary for package-provided information).
+for a file named ``modules_what`` (and provides variable substitution\\-\\-
+which should be minimal for package-provided information).
 At TACC, the *Name*, *Version*, *Category*, *URL* and 
 *Description* keywords (and values) are included in all modulefiles so that
 a software catalogue can be built, from the *key:value* pairs
@@ -27,7 +27,7 @@ in all the installed modulefiles. The following example shows
 the content of a ``modules_whatis`` file that would provide sites
 with developer "blessed" package information (useful to 
 installers and mkmod). The following table lists the 
-whatis information that TACC provides for XALT::
+*whatis* information that TACC provides for XALT::
 
        Name:        XALT
        Version:     2.4
@@ -36,13 +36,13 @@ whatis information that TACC provides for XALT::
        URL:         http://xalt.sf.net
        Description: Collects system usage data
 
-Likewise, developers can provide their own help information in 
+Likewise, developers can provide their own *help* information in 
 a ``modules_help`` file as plain text (with variable substitution).
-The list of possible help instructions include::
+The list of possible help instructions include:
 
-       Exampes of package execution
-       Compiler and loader options for libraries
-       List of runtime environment variables for package and suggested values
+* Examples of package execution
+* Compiler and loader options for libraries
+* List of runtime environment variables for package and suggested values
 
 .. _FHS: https://refspecs.linuxfoundation.org/FHS_3.0/fhs-3.0.pdf
 

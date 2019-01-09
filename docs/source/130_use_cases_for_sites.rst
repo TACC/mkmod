@@ -2,7 +2,7 @@ Use Cases for Sites
 -------------------
 
 Sites can use mkmod in *build* scripts or within *rpm* spec files for modulefile
-generation.  However, the component that installs the ``module use <dir>`` 
+generation.  However, the component that inserts the ``module use <dir>`` 
 command in startup scripts must be turned off, and the site name (abbreviation) 
 must be specified for the convenience environment variables (e.g. ``TACC_PHDF5_DOC``, etc.).  
 
@@ -15,9 +15,10 @@ For site-wide modulefiles the ``SITE_INSTALL`` variable should be set to the sit
 name (e.g. ``TACC``, ``PSC``, ``SDSC``, ``NERSC``). This sets the modulefile-name
 prefix to "";  the information environment variables are prefixed with the 
 site name and an underscore (e.g. ``TACC_``, ``PSC_``, etc.); and no insertion 
-of "module use <dir>" is attempted in startup scripts.
+of ``module use <dir>`` is attempted in startup scripts. The ``MODULEFILES_DIR``
+variable is set to the site-wide modulesfile directory for the application.
 
-Often site installers are interested in including whatis and help
+Often site installers are interested in including *whatis* and *help*
 information. There are several ways to have mkmod "ingest" this 
 information.
 
@@ -28,7 +29,7 @@ In this example ``SITE_INSTALL`` and ``MODULEFILES_DIR`` are set for site instal
 
 Also, ``NAME``, ``VER`` and ``TOPDIR`` variables are set as usual; and the ``ENV1`` 
 variable is set to a *name=value pair* (``REMORA_BIN=$TOPDIR/bin``) for mkmod to set 
-the `REMORA_BIN`` environment variable to ``$TOPDIR/bin`` in the modulefile::
+the ``REMORA_BIN`` environment variable to ``$TOPDIR/bin`` in the modulefile::
 
           # finished installing remora, with compiler and mpi module loaded
 
@@ -42,7 +43,7 @@ the `REMORA_BIN`` environment variable to ``$TOPDIR/bin`` in the modulefile::
           $ mkmod
 
 The compiler and MPI modules loaded at this time (for the remora install,
-and subsequent mkmod execution) are set as prerequisites.
+and subsequently seen by the mkmod execution) are set as prerequisites.
 
 Use Case 2
 ^^^^^^^^^^
@@ -60,7 +61,7 @@ trees, as shown in this example.
 
 Here, the *whatis* information is included through the ``WHATIS`` mkmod environment 
 variable, and modulefile help-text is contained in the ``HELP_MESSAGE`` mkmod variable. 
-The environment variables ``MOOSE_DIR`` and ``MOOSE_ARCH`` are set in the modulefile 
+Also, the environment variables ``MOOSE_DIR`` and ``MOOSE_ARCH`` are set in the modulefile 
 as specified by the mkmod ``ENV1`` and ``ENV2`` variables::
 
         #!/bin/bash
@@ -92,10 +93,10 @@ as specified by the mkmod ``ENV1`` and ``ENV2`` variables::
         "
         mkmod
 
-The ``WHATIS`` variable contains a @-separated list of whatis key-value pairs
+The ``WHATIS`` variable contains a @-separated list of whatis key:value pairs
 separated by colons. (Above, each *key:value* type pair is entered on a separate
 line, and includes a @ separator where appropriate.) 
-Optionally, each key-value pair can be entered 
+Optionally, each key:value pair can be entered 
 as a ``WHATIS#`` variable, like this::
 
         export WHATIS1="Name: Moose"
@@ -111,10 +112,11 @@ in ``/opt/apps``.  The site hierarchical structure is indicated in the pathnames
 Case 3
 ^^^^^^
 
-This *HDF5* modulefile site installation is similar to the above scripts,
-but it extracts the whatis and help information from files.
+This *HDF5* modulefile site installation is similar to those in the above scripts,
+but it extracts the *whatis* and *help* information from files specified
+in the ``WHATIS_FILE`` and ``HELP_FILE`` environment variables.
 
-The whatis key-value pairs are in the ``site_phdf_modules_whatis`` file,
+The whatis key:value pairs are in the ``site_phdf_modules_whatis`` file,
 and the help information text is in the ``site_phdf5_modules_help`` file. ::
 
         #!/bin/bash
@@ -144,7 +146,7 @@ Variable substitution is performed for the file content.  Hence it may be
 necessary to escape (protect) the dollar ($) character at times, as is done 
 in the help file below.
 (Substitution is only for externally defined variables; internal 
-(convenience) variables, such as``TACC_PHDF5_LIB``, ``TACC_PHDF5_DOC``, etc. 
+(convenience) variables, such as ``TACC_PHDF5_LIB``, ``TACC_PHDF5_DOC``, etc. 
 holding directory names, are not available for evaluation). 
 The two information files are listed here::
 
@@ -170,7 +172,7 @@ The two information files are listed here::
 
 Mkmod also searches, relative to ``$TOPDIR``,
 for files named ``modules_help`` and ``modules_whatis``. It appends the content of ``modules_help`` 
-to the automatic modulefile help message, and uses the key-value pairs in the ``modules_whatis`` 
+to the automatic modulefile help-message, and uses the key:value pairs in the ``modules_whatis`` 
 file for the modulefile *whatis* entries. The precedence is presented in the following table:
 
     HELP:
@@ -178,12 +180,13 @@ file for the modulefile *whatis* entries. The precedence is presented in the fol
     ==================  ===========================   ===========================================
     File/Env. Var.      Location/Value                Modulefile Help Message Contribution
     ==================  ===========================   ===========================================
-    modules_help        file name, found relative     Append content to  modulefile help message.
+    modules_help        file name, found relative     Appends content to modulefile help message.
                         to $TOPDIR search
     HELP_FILE           \=pathname (file)             Don't search for modules_help file.
-                                                      Append content to modulefile help message.
+                                                      Append content of this fileto modulefile 
+                                                      help message.
     HELP_FILE           \=none                        Don't search for modules_help file.
-    HELP_MESSAGE        \="some text"                 Only append text to module help message,
+    HELP_MESSAGE        \="some text"                 Append text to module help message,
                                                       if no help file is being used.
     ==================  ===========================   ===========================================
 
@@ -194,7 +197,7 @@ file for the modulefile *whatis* entries. The precedence is presented in the fol
     ==================  ===========================   ===========================================
     modules_whatis      file name, found relative     Read each line as a
                         to $TOPDIR search             whatis key:value formatted pair.
-    WHATIS_FILE         \=pathname (file)             Don't search for modules_whatis file,
+    WHATIS_FILE         \=pathname (file)             Don't search for modules_whatis file.
                                                       Read each line as a whatis key:value format.
     WHATIS_FILE         \=none                        Don't search for modules_whatis file.
     WHATIS_MESSAGE      \="list of key:value pairs"   Only uses these as whatis values 

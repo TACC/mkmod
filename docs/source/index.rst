@@ -12,7 +12,7 @@ mkmod: Makes modulefile for Installed Software Package
 PURPOSE
 ^^^^^^^
 
-Automatically creates and installs a basic modulefile for an installed package, 
+Mkmod automatically creates and installs a basic modulefile for an installed package, 
 given the package *name*, *version* and *directory* location set by the user in the 
 ``NAME``, ``VER``, and ``TOPDIR``
 environment variables. Other environment variables can be used to customize the 
@@ -29,12 +29,12 @@ requiring only a ``make`` execution.
 
 A basic modulefile is automatically generated for an installed package 
 from appropriate values set in the ``NAME``, ``VER`` and ``TOPDIR`` environment variables.
-Mkmod has advanced features, accessible by setting other environment variables|minus|\ |minus\
+Mkmod has advanced features, accessible by setting other environment variables\\-\\-
 to accommodate the more sophisticated needs of some package environments. 
 
 Mkmod installs the generated modulefile in a ``modulefiles`` directory. It includes the
 ``module use $HOME/modulefiles`` command in appropriate startup files, directing 
-EMS to be aware of the mkmod installed modulefiles.
+EMS to be aware of the mkmod-installed modulefiles.
 
 Other capabilities are available for developers who want to provide a modulefile 
 for automatic installation, or at least provide *help* and *whatis* components of a

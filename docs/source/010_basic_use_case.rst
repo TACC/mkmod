@@ -18,7 +18,7 @@ Example: To load your remora environment, execute::
 
           $ module load my_remora
 
-(Remora also needs the ```REMORA_BIN``` variable set for full operation, as shown in the section
+(Remora also needs the ``REMORA_BIN`` variable set for full operation, as shown in the section
 :ref:`Use Cases for HPC Users <remorabin>`.)
 
 So that there is no possible interference with corresponding system modules the

@@ -2,7 +2,7 @@ Automatic Features
 ------------------
 
 The basic function of the modulefile generation component in mkmod
-is to determine the flavor of the Modules Environment System (Tcl or Lua), 
+is to determine the flavor of the Environment Modules system (Tcl or Lua), 
 investigate the directories and files in the ``$TOPDIR`` directory, 
 and construct appropriate module commands to create an environment for
 operation of the installed package. *Convenience environment variables* 
@@ -20,12 +20,12 @@ These are the features mkmod provides automatically:
        :DIR. VARS: Creates *convenience environment variables* that contain the
         directory paths for ``docs``, ``examples``, ``share``, ``include``, etc.:
 
-           ====================    ============      ====================
+           ====================    ============      ===========================
            Discovered              mkmod             Convenience Variable
            Directory               standard          (remora example,
            in $TOPDIR              abbr.             with default prefix)
-                --------             --------          ---------------
-           ====================    ============      ====================
+           --------------------    ------------      ---------------------------
+           ====================    ============      ===========================
            bench | benchmarks      BEN               MY_REMORA_BEN
            bin                     BIN               MY_REMORA_BIN
            data                    DAT               MY_REMORA_DAT
@@ -36,11 +36,11 @@ These are the features mkmod provides automatically:
            share                   SHR               MY_REMORA_SHR
            tools                   TOL               MY_REMORA_TOL
            tutorials               TUT               MY_REMORA_TUT
-           ====================    ============      ====================
+           ====================    ============      ===========================
 
        :family: Sets module ``family`` command to  ``NAME`` so that only a single
         module named ``NAME`` is allowed to be loaded at a time.
        :prereq: Appropriate compiler and MPI modules (ones set at the time mkmod is executed)
-        are made modulefile *prereq*'s so that the ``module load`` only continues 
+        are made modulefile *prereq*'s so that a ``module load`` command only continues 
         when the appropriate MPI/compiler modules used by the installed package are loaded.
        :help: A module help file is created which provides the above basic information.

@@ -30,7 +30,7 @@ Prefix Environment Variable:
    ==============    =======   ======================   ========================
 
 The ``NAME`` and ``VER`` values are used to make a modulefile in ``$HOME/modulefiles`` (default, automatically
-creates directory if it doesn't exist) with the pathname  ``$NAME/$VER``.  For the above input
+creates directory if it doesn't exist) with the pathname  ``my_$NAME/$VER``.  For the above input
 the created modulefile is ``$HOME/my_remora/1.8.2`` for a Tcl module system and ``$HOME/my_remora/1.8.2.lua``
 for a Lua module system. The content of the modulefile is derived from the directories and
 files within the ``$TOPDIR`` directory, and the present environment.  The command::
@@ -39,7 +39,7 @@ files within the ``$TOPDIR`` directory, and the present environment.  The comman
           $ module load my_remora/1.8.1    # name and (optional) version used here
 
 will load the module for the example remora installation. Retain the default prefix (``my_``) 
-if a version of the package is available in the Modules Environment System (MES), 
+if a version of the package is available in the Environment Modules system (EMS), 
 so that there is no confusion or complication involving which environment you will obtain.
 Otherwise you my want to specify no prefix for a simpler load command::
 
