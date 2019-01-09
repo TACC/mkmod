@@ -41,7 +41,7 @@ files within the ``$TOPDIR`` directory, and the present environment.  The comman
 will load the module for the example remora installation. Retain the default prefix (``my_``) 
 if a version of the package is available in the Environment Modules system (EMS), 
 so that there is no confusion or complication involving which environment you will obtain.
-Otherwise you my want to specify no prefix for a simpler load command::
+Otherwise you may want to specify no prefix for a simpler load command::
 
           $ module load remora            # PREFEX="" set before mkmod execution
           $ module load remora/1.8.2      # PREFEX="" set before mkmod execution

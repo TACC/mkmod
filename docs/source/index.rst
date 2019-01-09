@@ -45,7 +45,7 @@ Guide for HPC Users
 
 The easiest way to get started is to follow one of the use cases, using,
 for practice, a package that is already installed. For cleanup, just
-remove the modulefile from your ``modulesfiles`` directory.
+remove the modulefile from your ``modulefiles`` directory.
 
 .. toctree::
    :maxdepth: 1
