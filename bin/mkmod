@@ -1312,8 +1312,8 @@ USAGE='
 # v-- USER-DEFINED PATHS
 # # USER-DEFINED path environment variables (full path)
 
-  IFS=':' read -a my_ldpath_list <<< "$LDPATH_LIST"
-  for dir in    ${my_ldpath_list[@]}; do
+  IFS=':' read -a my_path_list <<< "$PATH_LIST"
+  for dir in    ${my_path_list[@]}; do
     if [[ $FLAVOR == "lmod" ]]; then
      module+=( "prepend_path(\"PATH\",\"$dir\")" )
     else
@@ -1324,8 +1324,8 @@ USAGE='
                           #123456789012345....^
   done
   
-  IFS=':' read -a my_path_list <<< "$PATH_LIST"
-  for dir in    ${my_path_list[@]}; do
+  IFS=':' read -a my_ldpath_list <<< "$LDPATH_LIST"
+  for dir in    ${my_ldpath_list[@]}; do
     if [[ $FLAVOR == "lmod" ]]; then
      module+=( "prepend_path(\"LD_LIBRARY_PATH\",\"$dir\")" )
     else
