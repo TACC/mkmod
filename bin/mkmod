@@ -539,6 +539,9 @@ USAGE='
       if [[ -e $HELP_FILE  ]] &&  [[ -r $HELP_FILE ]]; then
         echo "  -> Permission OK on \$HELP_FILE: $HELP_FILE file."
         echo "  -> Will create help entries after performing variable substitution on this file."
+      else
+        provided_help=no
+        echo "  -> WARNING: $HELP_FILE NOT ACCESSIBLE. Check location/readability, fix, & rerun mkmod."
       fi
    else
       provided_help=no
