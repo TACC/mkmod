@@ -1,11 +1,10 @@
 #!/bin/bash
-
 create_module_file=true     #testing: set to false to NOT execute module creation
 module_use_in_startup=true  #set to false to NOT execute module use insertion (in startups)
 
 # MUST register all environment variables used by mkmod (Search for this line in VARS section)
 
-MKMOD_VERSION=2.1  # VERSION SOURCE makefile extracts version from this line
+MKMOD_VERSION=2.2  # VERSION SOURCE makefile extracts version from this line
                    # DO NOT MODIFY format "MKMOD_version=<ver>  # VERSION SOURCE"
 
 if [[ ${BASH_SOURCE[0]} =~ [^[:space:]] ]]; then
@@ -1612,9 +1611,7 @@ if [[ $create_module_file == true ]]; then
 #############END--^      CREATE MODULEFILE
 fi #create_module_file == true
 
-
   
-if [[ $module_use_in_startup == true ]]; then  
 #############BEG--v      GROUP ACCESS REQUEST
   
 ##if [[ $GROUP_ACCESS =~ [^[:space:]] ]]; then
@@ -1709,151 +1706,94 @@ if [[ $module_use_in_startup == true ]]; then
 
 #############END--^      GROUP ACCESS REQUEST
 
+if [[ $module_use_in_startup == true ]]; then  
+#--------------------------------------------------------------------------------------------------
 
+ # Get the parent command. if PARENT_CMD_TYPE=login_shell, OK to request insertions
 
-#############BEG--v      CHECK FOR LOGIN SHELL
-#                                    Let's find the login shell
-#                                    or use $SHELL as the login shell
-  echo $'\n'"  -> LOGIN SHELL DETERMINATION:"
-  supported_shells=(csh tcsh bash zsh)
-  
-  LOGIN_SHELL="not_found"
-  ln_shell_by="from MKMOD_LOGIN_SHELL var, or SHELL var, or finger"
-  my_login_shell=""
-  
-##if [[ $MKMOD_LOGIN_SHELL =~ [^[:space:]] ]]; then
-  if [[ ${MKMOD_LOGIN_SHELL:+hasvalue} == hasvalue ]]; then
-     LOGIN_SHELL=$MKMOD_LOGIN_SHELL
-     ln_shell_by="by MKMOD_LOGIN_SHELL var"
-  else
-     finger -m $USER 2>&1 |grep Shell:  2>&1|sed  's/.*Shell:\s*\([a-z,\/]*\)/\1/' 2>&1  > /dev/null
-     if [[ ! ${PIPESTATUS[@]} =~ 1 ]]; then
-        LOGIN_SHELL=`finger -m $USER |grep Shell: |sed  's/.*Shell:\s*\([a-z,\/]*\)/\1/'`
-        ln_shell_by="by finger"
-     else
-      ##if [[ $SHELL  =~ [^[:space:]] ]]; then
-        if [[ ${SHELL:+hasvalue}  == hasvalue ]]; then
-           LOGIN_SHELL=$SHELL
-           ln_shell_by="by SHELL var"
-        fi
-     fi
-  fi
-  
-  for shell in ${supported_shells[@]} ; do
-     [[ $LOGIN_SHELL =~ $shell ]] && my_login_shell=$shell
-  done
-  
-  #           no determined value                           not set
-##if [[ $LOGIN_SHELL =~ not_found ]] && [[ ! $MKMOD_LOGIN_SHELL =~ [^[:space:]] ]]; then
-  if [[ $LOGIN_SHELL =~ not_found ]] && [[ ! ${MKMOD_LOGIN_SHELL:+hasvalue} == hasvalue ]]; then
-     echo "  -> INTERNAL ERROR: Could not determine login shell."
-     echo "  ->                 Please set MKMOD_LOGIN_SHELL"
-     echo "  ->                 to your login shell (e.g. bash,tcsh, etc)."
-     exit
-  fi
-  
-##if [[ ! $my_login_shell =~ [^[:space:]] ]]; then
-  if [[ ! ${my_login_shell:+hasvalue} == hasvalue ]]; then
-     echo "  -> ERROR: Login shell \"$LOGIN_SHELL\" as determined $ln_shell_by"
-     echo "  ->        was not found to be one of supported shells (${supported_shells[@]})."
-     exit
-  fi
-  
-  echo "  -> As determined $ln_shell_by, $my_login_shell is assumed to be your login shell."
-##[[ ! $MKMOD_LOGIN_SHELL =~ [^[:space:]] ]] &&
-  [[ ! ${MKMOD_LOGIN_SHELL:+hasvalue} == hasvalue ]] &&
-       echo "  ->    This can be changed by setting your shell in MKMOD_LOGIN_SHELL."
+ get_parent_cmd 
 
-  #           Take off path (Next section only uses base name, bash, tcsh, etc.)  
-  LOGIN_SHELL=$(basename $LOGIN_SHELL) 
-#############END--^      CHECK FOR LOGIN SHELL
+ # if parent command is a login shell, OK to ask to insert
+ # if SET_STARTUP_MODULEPATH is set, don't ask, just do it if startup file(s) needs it
+
+ if [[ "$PARENT_CMD_TYPE" == login_shell ]] || [[ "${SET_STARTUP_MODULEFILE:+hasvalue}" == hasvalue ]]; then
+
+  get_login_shell
+
+  #If parent is login shell, ask permission
+
+  [[ "$PARENT_CMD_TYPE" == login_shell ]] && ASK=yes   #If parent is login shell, ask permission
+
+  # If SET_STARTUP_MODULEFILE is set, don't ask permission (assume permission, i.e. YESNO_ANSWER=yes).
+
+  [[ "${SET_STARTUP_MODULEFILE:+hasvalue}" == hasvalue ]] && ASK=no && YESNO_ANSWER="yes"   
 
 
 #############BEG--v      MODULE USE IN SHELLRC
-#                                    Check for "module use $MODULEFILE_DIR" in STARTUPS SCRIPS
+#                                    Check for "module use $MODULEFILE_DIR" in STARTUPS SCRIPTS
 #                                    Insert if not found, and logic to execute just once
 #                                    bash, csh, tcsh and zsh supported
 
-##if [[ ! "$MKMOD_DEBUG"  =~ [^[:space:]]  ]] && [[ ! "$USE_IN_SHELLRC"  =~ none  ]] ; then
   if [[ ! ${MKMOD_DEBUG:+hasvalue}  == hasvalue ]] && [[ ! "$USE_IN_SHELLRC"  =~ none  ]] ; then
-     echo $'\n'"  -> MODULE USE in STARTUP FILE:"
-
-####### DETERMINE STARTUPS 
-    #[[ $my_login_shell =~ bash ]] && shellrc=.bashrc SHELLRC=$HOME/.bashrc  RC=BASHRC
-    #[[ $my_login_shell =~  zsh ]] && shellrc=.zshenv SHELLRC=$HOME/.zshenv  RC=ZSHRC
-    #[[ $my_login_shell =~  csh ]] && shellrc=.cshrc  SHELLRC=$HOME/.cshrc   RC=CSHRC
-#vvvvvvvvvvvvvv
+    echo $'\n'"  -> MODULE USE in STARTUP FILE:"
 
 ###############################################################################
-# tcsh RC files:  sources .tcshrc if present and quits; 
-#                 tries   .cshrc  next, and sources if present
-#    LOGIN file:  after sourcing RC, source .login
 
-#  csh RC files:  tries   .cshrc  next, and sources if present
-#    LOGIN file:  after sourcing RC, source .login
-#       CAREFUL:  csh may be linked to tcsh (if so, use tcsh login rules)
-
-# bash RC file:   .bashrc
-#   LOGIN files:  .bash_profile, .profile, .bash_login
-
-# zsh  RC files:  .zshenv   (always unless -f option)
-#   login files:  .zprofile (login shells)
-#      RC files:  .zshrc    (interactive shells, unless -f)
-#   login files:  .zlogin   (login shells)
-
-# https://kb.iu.edu/d/abdy
-#    
-
-   #source shell_utils
-
-# v-- Determine real login shell.  E.g. csh may point to tcsh, sh to bash, etc.
-########THIS GOES IN LOGIN_SHELL DETERMINATION SECTION
-    #    LOGIN_SHELL=bash             ###TAKEOUT
-    ORIG_LOGIN_SHELL=$LOGIN_SHELL
-
-    file=$(readlink -f `which $LOGIN_SHELL`)
-
-    [[ $LOGIN_SHELL == csh ]] && [[ $file =~ tcsh ]] && LOGIN_SHELL=tcsh && login_shell_status=linked
-    [[ $LOGIN_SHELL ==  sh ]] && [[ $file =~ bash ]] && LOGIN_SHELL=bash && login_shell_status=linked
-    [[ $LOGIN_SHELL == ksh ]] && [[ $file =~ bash ]] && LOGIN_SHELL=bash && login_shell_status=linked
-
-# ^-- Determine real shell.  E.g. csh may point to tcsh, sh to bash, etc.
-
-#^^^^^^^^^^^^^^^
 # v--  Determine if site has an assigned suffix
 
-     #SITE=NERSC     ###TAKEOUT
-     #SITE=unknown     ###TAKEOUT
-     #SITE_STARTUP_FILE_SUFFIX=""
+    #SITE=NERSC     ###just for testing
+    #SITE=unknown     ###just for testing
+    #SITE_STARTUP_FILE_SUFFIX=""  ###just for testing
  
-   ##if [[ $MKMOD_STARTUP_FILE_SUFFIX =~ [^[:space:]] ]]; then
-     if [[ ${MKMOD_STARTUP_FILE_SUFFIX:+hasvalue} == hasvalue ]]; then
+    if [[ ${MKMOD_STARTUP_FILE_SUFFIX:+hasvalue} == hasvalue ]]; then
  
-       STARTUP_FILE_SUFFIX=$MKMOD_STARTUP_FILE_SUFFIX
+      STARTUP_FILE_SUFFIX=$MKMOD_STARTUP_FILE_SUFFIX
  
-     else
+    else
  
-     ##if [[ ! $STARTUP_FILE_SUFFIX =~ [^[:space:]] ]]; then
-       if [[ ! ${STARTUP_FILE_SUFFIX:+hasvalue} == hasvalue ]]; then
-          #  Determine if site has an assigned suffix for the profile (e.g. NERSC uses .ext)
+      if [[ ! ${STARTUP_FILE_SUFFIX:+hasvalue} == hasvalue ]]; then
 
-          [[ ! $SITE == unknown ]] && [[ ! ${site_suffixes[$SITE_index]} == none ]] && \
-               STARTUP_FILE_SUFFIX=${site_suffixes[$SITE_index]}
+         STARTUP_FILE_SUFFIX=""
+
+         #  Determine if site has an assigned suffix for the profile (e.g. NERSC uses .ext)
+
+         [[ ! $SITE == unknown ]] && [[ ! ${site_suffixes[$SITE_index]} == none ]] && \
+              STARTUP_FILE_SUFFIX=${site_suffixes[$SITE_index]}
  
-          # Could check file extensions here for unknown site, but that is a bit too much.
-          # Let's let user supply MKMOD_STARTUP_FILE_SUFFIX if unknown site uses suffixes
-          # This is only done once, so Sal Goodman
-       fi
+         # Could check file extensions here for unknown site, but that is a bit too much.
+         # Let's let user supply MKMOD_STARTUP_FILE_SUFFIX if unknown site uses suffixes
+         # This is only done once, so Sal Goodman
+      fi
  
-     fi
+    fi
 # ^--  Determine if site has an assigned suffix
 
+###############################################################################
+
+# v--  Shell Info
+   # tcsh RC files:  sources .tcshrc if present and quits; 
+   #                 tries   .cshrc  next, and sources if present
+   #    LOGIN file:  after sourcing RC, source .login
+   
+   #  csh RC files:  tries   .cshrc  next, and sources if present
+   #    LOGIN file:  after sourcing RC, source .login
+   #       CAREFUL:  csh may be linked to tcsh (if so, use tcsh login rules)
+   
+   # bash RC file:   .bashrc
+   #   LOGIN files:  .bash_profile, .profile, .bash_login
+   
+   # zsh  RC files:  .zshenv   (always unless -f option)
+   #   login files:  .zprofile (login shells)
+   #      RC files:  .zshrc    (interactive shells, unless -f)
+   #   login files:  .zlogin   (login shells)
+   
+   # https://kb.iu.edu/d/abdy
+   #  
+# ^--  Shell Info
 
 ############################ BEGIN FROM SHELL
+    # Next line is for testing only
     [[ ${units_and_vars[@]}    =~ "install_mod_use"   ]] && set_unit_test_vars install_mod_use
-
-    [[ $STARTUP_FILE_SUFFIX == "none" ]] && STARTUP_FILE_SUFFIX=""
-
 
     echo "  -> Using $LOGIN_SHELL as the login shell."
     insert_use=no
@@ -1869,13 +1809,14 @@ if [[ $module_use_in_startup == true ]]; then
           has_use_in_LOGINFILE=no
           has_use_in_RCFILE=no
 
-        ##[[ ! $bashrc_access  =~ [^[:space:]] ]] && print_no_startup_file BASH $bashrc$STARTUP_FILE_SUFFIX    $MODULEFILES_DIR && exit 1
           [[ ! ${bashrc_access:+hasvalue}  == hasvalue ]] && print_no_startup_file BASH $bashrc$STARTUP_FILE_SUFFIX    $MODULEFILES_DIR && exit 1
-        ##[[ ! $profile_access =~ [^[:space:]] ]] && print_no_startup_file BASH ".bash_profile|.profile|.bash_login$STARTUP_FILE_SUFFIX" $MODULEFILES_DIR && exit 1
           [[ ! ${profile_access:+hasvalue} == hasvalue ]] && print_no_startup_file BASH ".bash_profile|.profile|.bash_login$STARTUP_FILE_SUFFIX" $MODULEFILES_DIR && exit 1
 
           [[   $bashrc_access  == "read-only" ]] && print_startup_problem $RCFILE $bashrc_access           && exit 1
           [[   $profile_access == "read-only" ]] && print_startup_problem $LOGINFILE $profile_access       && exit 1
+
+
+          echo "  -> Will be checking for \"module use ...\" in  \$HOME/$RCFILE and \$HOME/$LOGINFILE files."
 
           grep -e  "$MODULEFILES_DIR #MKMOD_KEEP_THIS_COMMENT" $HOME/$RCFILE >/dev/null
           if [[ $? == 0 ]]; then
@@ -1898,18 +1839,31 @@ if [[ $module_use_in_startup == true ]]; then
           if [[ ! $SITE == tacc ]]; then
              if [[ $has_use_in_LOGINFILE == no ]]; then 
 
+              #If Both LOGINFILE and RCFILE need inserts, just ask once for both files (in FILE)
+               FILE="$LOGINFILE"
+               [[ $has_use_in_RCFILE    == no ]] && FILE="$LOGINFILE and $RCFILE"
+
+               [[ $ASK == yes ]] &&  permission_to_insert "$FILE"   # sets global YESNO_ANSWER to yes or no
+               if [[ $YESNO_ANSWER == yes ]]; then
                 insert_module_use_in_bash_startupfile $LOGINFILE  $MODULEFILES_DIR
 
                 insert_use=yes
                 echo "  -> Inserted \"module use\" command in $LOGINFILE."
+                ASK=no #no need to ask permission again (for RCFILE)
+               fi
+
              fi
 
              if [[ $has_use_in_RCFILE    == no ]]; then
 
+               [[ $ASK == yes ]] &&  permission_to_insert $RCFILE   # sets global YESNO_ANSWER to yes or no
+               if [[ $YESNO_ANSWER == yes ]]; then
                 insert_module_use_in_bash_startupfile $RCFILE     $MODULEFILES_DIR
 
                 insert_use=yes
                 echo "  -> Inserted \"module use\" command in $RCFILE."
+               fi
+
              fi
              FINISHED_SHELLS="$LOGINFILE and $RCFILE"
           else
@@ -1921,11 +1875,17 @@ if [[ $module_use_in_startup == true ]]; then
              if [[ $has_use_in_RCFILE == no ]]; then
                 grep -P '^\s*export\s+__BASHRC_SOURCED__=1' $HOME/$RCFILE > /dev/null
                 if [[ $? == 0 ]]; then
+                 [[ $ASK == yes ]] &&  permission_to_insert $RCFILE   # sets global YESNO_ANSWER to yes or no
+                 if [[ $YESNO_ANSWER == yes ]]; then
                    sed -i '/export *__BASHRC_SOURCED__=1/a'"\ \ \ \ module use $MODULEFILES_DIR #MKMOD_KEEP_THIS_COMMENT" $HOME/$RCFILE 
                    insert_use=yes
+                 fi
                 else
+                 [[ $ASK == yes ]] &&  permission_to_insert $RCFILE   # sets global YESNO_ANSWER to yes or no
+                 if [[ $YESNO_ANSWER == yes ]]; then
                    insert_module_use_in_bash_startupfile $RCFILE     $MODULEFILES_DIR  "-a \"\$ENVIRONMENT\" != BATCH"
                    insert_use=yes
+                 fi
                 fi
                 echo "  -> Inserted \"module use\" command in TACC $RCFILE file."
              fi
@@ -1956,9 +1916,12 @@ if [[ $module_use_in_startup == true ]]; then
 
           if [[ ! $SITE == tacc ]]; then
              if [[ $has_use_in_RCFILE == no ]]; then
+              [[ $ASK == yes ]] &&  permission_to_insert $RCFILE   # sets global YESNO_ANSWER to yes or no
+              if [[ $YESNO_ANSWER == yes ]]; then
                 insert_module_use_in_csh_startupfile $RCFILE     $MODULEFILES_DIR
                 insert_use=yes
                 echo "  -> Inserted \"module use\" command in $RCFILE."
+              fi
              fi
           else
 
@@ -1967,13 +1930,20 @@ if [[ $module_use_in_startup == true ]]; then
              if [[ $has_use_in_RCFILE == no ]]; then
                 grep -P '^\s*setenv\s+__XSHRC_SOURCED__ *1' $HOME/$RCFILE > /dev/null
                 if [[ $? == 0 ]]; then
+                 [[ $ASK == yes ]] &&  permission_to_insert $RCFILE   # sets global YESNO_ANSWER to yes or no
+                 if [[ $YESNO_ANSWER == yes ]]; then
                    sed -i '/setenv *__CSHRC_SOURCED__ *1/a'"\ \ \ \ module use $MODULEFILES_DIR #MKMOD_KEEP_THIS_COMMENT" $HOME/$RCFILE
                    insert_use=yes
+                   echo "  -> Inserted \"module use\" command in TACC $RCFILE file."
+                 fi
                 else
+                 [[ $ASK == yes ]] &&  permission_to_insert $RCFILE   # sets global YESNO_ANSWER to yes or no
+                 if [[ $YESNO_ANSWER == yes ]]; then
                    insert_module_use_in_csh_startupfile $RCFILE     $MODULEFILES_DIR  "&& ! \$?ENVIRONMENT"
                    insert_use=yes
+                   echo "  -> Inserted \"module use\" command in TACC $RCFILE file."
+                 fi
                 fi
-                echo "  -> Inserted \"module use\" command in TACC $RCFILE file."
              fi
 
           fi
@@ -2005,9 +1975,12 @@ if [[ $module_use_in_startup == true ]]; then
 
           if [[ ! $SITE == tacc ]]; then
              if [[ $has_use_in_RCFILE == no ]]; then
+              [[ $ASK == yes ]] &&  permission_to_insert $RCFILE   # sets global YESNO_ANSWER to yes or no
+              if [[ $YESNO_ANSWER == yes ]]; then
                 insert_module_use_in_csh_startupfile $RCFILE     $MODULEFILES_DIR
                 insert_use=yes
                 echo "  -> Inserted \"module use\" command in TACC $RCFILE."
+              fi
              fi
           else
 
@@ -2017,13 +1990,20 @@ if [[ $module_use_in_startup == true ]]; then
              if [[ $has_use_in_RCFILE == no ]]; then
                 grep -P '^\s*setenv\s+__CSHRC_SOURCED__ *1' $HOME/$RCFILE > /dev/null
                 if [[ $? == 0 ]]; then
+                 [[ $ASK == yes ]] &&  permission_to_insert $RCFILE   # sets global YESNO_ANSWER to yes or no
+                 if [[ $YESNO_ANSWER == yes ]]; then
                    sed -i '/setenv *__CSHRC_SOURCED__ *1/a'"\ \ \ \ module use $MODULEFILES_DIR #MKMOD_KEEP_THIS_COMMENT" $HOME/$RCFILE
+                   insert_use=yes
                    echo "  -> Inserted \"module use\" command in $RCFILE."
+                 fi
                 else
+                 [[ $ASK == yes ]] &&  permission_to_insert $RCFILE   # sets global YESNO_ANSWER to yes or no
+                 if [[ $YESNO_ANSWER == yes ]]; then
                    insert_module_use_in_csh_startupfile $RCFILE     $MODULEFILES_DIR  "&& ! \$?ENVIRONMENT"
+                   insert_use=yes
+                   echo "  -> Inserted \"module use\" command in TACC $RCFILE."
+                 fi
                 fi
-                insert_use=yes
-                echo "  -> Inserted \"module use\" command in TACC $RCFILE."
              fi
 
           fi
@@ -2044,15 +2024,21 @@ if [[ $module_use_in_startup == true ]]; then
 
           grep -e  "$MODULEFILES_DIR #MKMOD_KEEP_THIS_COMMENT" $HOME/$ENVFILE >/dev/null
           if [[ $? == 0 ]]; then
+           [[ $ASK == yes ]] &&  permission_to_insert $ENVFILE   # sets global YESNO_ANSWER to yes or no
+           if [[ $YESNO_ANSWER == yes ]]; then
               has_use_in_ENVFILE=yes
               echo "  -> Note: Command \"module use $MODULEFILES_DIR\" is already in \$HOME/$ENVFILE."
+           fi
           fi
 
 
           if [[ $has_use_in_ENVFILE == no ]]; then
+           [[ $ASK == yes ]] &&  permission_to_insert $ENVFILE   # sets global YESNO_ANSWER to yes or no
+           if [[ $YESNO_ANSWER == yes ]]; then
              insert_module_use_in_zsh_startupfile $ENVFILE     $MODULEFILES_DIR
              insert_use=yes
              echo "  -> Inserted \"module use\" command in $ENVFILE."
+           fi
           fi
 
           FINISHED_SHELLS=$ENVFILE
@@ -2075,6 +2061,7 @@ if [[ $module_use_in_startup == true ]]; then
     echo "  -> Finished with \"module use\" setup for $FINISHED_SHELLS shell."
 
   fi    #DEBUG--don't do
+ fi    #if parent is login shell
 fi    #module_use_in_startup == true
 #############END--^      MODULE USE IN SHELLRC
 

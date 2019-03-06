@@ -188,7 +188,7 @@
      echo "${assigned[@]}"                    #return all variables with assignments
    }
 
-#  v--  END    DETERMINE ASSIGNED VARIABLES
+#  ^--  END    DETERMINE ASSIGNED VARIABLES
 #  ##########################################################################
 
 
@@ -306,6 +306,7 @@
 
 #  ^--  END    UNIT TEST
 #  ##########################################################################
+
 # ***************************************************************************
 #                vvvv   MODULE USE "SHELL" UTILS   vvvv
 # ***************************************************************************
@@ -640,7 +641,7 @@
         shopt -s extglob
         printf '%s' "${message[@]#+( ):}" >> $HOME/$MY_STARTUP_FILE
         shopt -u extglob
-}
+   }
 
    print_no_startup_file(){
 
@@ -741,3 +742,179 @@
 
 #  ^--  END    SHELL UTILS
 #  ##########################################################################
+   
+#vv #############################################################################
+   #  v--  BEG ASK YES/NO QUESTION
+   
+        Red="\033[0;31m"       # Red
+       Blue="\033[0;34m"       # Blue
+      BBlue="\033[1;34m"       # Bold Blue
+      UBlue="\033[4;34m"       # Underline Blue
+      IBlue="\033[0;94m"       # Intense Blue
+     BIBlue="\033[1;94m"       # Bold Intense Blue
+   ENDCOLOR="\033[0m"
+
+   function ask_yesno(){
+
+   #Supply yes or no to question  Arg 1 = questions, Arg 2= explanation (optional)
+
+     YESNO_ANSWER=""
+
+     echo -e "$BBlue$1$ENDCOLOR"    #question
+
+     [[ ! -z 2 ]] && echo -e "$2"   #further explanation
+
+     echo -e -n "\n$Blue  -> Enter no or yes(default) :$ENDCOLOR"  #enter yes/no
+   
+     while [[ 1 ]]; do                                            #while until right
+
+        IFS=$'\n' read -r YESNO_ANSWER
+
+        if [[ "$YESNO_ANSWER" =~ ^[yY] ]] || [[ "$YESNO_ANSWER" == "" ]]; then
+           YESNO_ANSWER="yes"; break;
+           break;
+        fi
+        if [[ "$YESNO_ANSWER" =~ ^[nN] ]]; then
+           YESNO_ANSWER="no"; break
+        fi
+                                                                  #try again
+        echo -e "\n     ${UBlue}${YESNO_ANSWER} is not a valid answer.${ENDCOLOR}"
+        echo -e -n   "\n${Blue}  -> Enter no or yes(default) :${ENDCOLOR}"
+        
+     done
+     echo -e "  -> Selected answer: ${Blue}$YESNO_ANSWER${ENDCOLOR}." #value selected
+   }
+#################################################################################
+   
+#vv #############################################################################
+   function permission_to_insert(){
+   local  insert_request="\a\n -> mkmod requests permissions to insert \n"
+   local insert_request+="    \"module use $MY_MODULEFILES_DIR\" in your $1 startup file.\n \a"
+   local     insert_warn="    This is required to allow the modules system to\n"
+   local    insert_warn+="    see your modules in your modulesfile directory.\n"
+   local    insert_warn+="    A backup is created with restoring instructions, as a safeguard."
+ 
+     ask_yesno "$insert_request" "$insert_warn"
+     [[ "${YESNO_ANSWER}" == no ]] &&
+        echo -e -n "\a\n${Red} -> You will need to include the modulesfiles " &&
+        echo -e    "directory in MODULEPATH yourself.${ENDCOLOR}\n"
+         
+   }
+#################################################################################
+   
+#vv #############################################################################
+   function get_parent_cmd(){
+   
+     # ps_ppid_cmd=$( ps --no-headers -o cmd $PPID )
+   
+     # If login shell parent_commands has - prefix and base shell name:  -bash, -tcsh, -zsh
+     # If       shell parent_commands has base shell name:  bash, tcsh, zsh, etc
+     # If script, ps_ppid_cmd has form "bash <script_name>"
+   
+     local ps_ppid_cmd pstree_cmds
+   
+         ps_ppid_cmd=$( ps --no-headers -o cmd $PPID )       ## get parent command
+     PARENT_CMD=$(echo $ps_ppid_cmd | sed 's/^.*\s//')   ## rm everything up to<scriptname>
+     pstree_cmds=$( pstree -A -s $$ )         ## ...sshd---<proc_names>---mkmod---pstree
+                                               ## ...sshd---<shell     >---mkmod---pstree
+     #pstree_pid_cmds=$( pstree -A -s -p $$ )
+   
+     PARENT_CMD_TYPE="script"
+     if [[ "$PARENT_CMD" =~  ^-.{0,2}sh$ ]] ; then
+       PARENT_CMD=${PARENT_CMD:1}              ## strip off "-" prefix
+       PARENT_CMD_TYPE="shell"                 ## Must be shell if prefix is present
+     fi
+     [[ "$PARENT_CMD" =~  ^.{0,2}sh$ ]]  && PARENT_CMD_TYPE="shell"
+   
+     # Complication: if csh is executed in bash shell it appears with a prefix (-csh). :)
+     #               Must be positive it is a login shell:
+     #               A real login shell will appear as ...sshd---<shell>---mkmod in pstree.
+   
+     if [[ $PARENT_CMD_TYPE == shell ]]; then
+       if [[ "$pstree_cmds"  =~ "sshd---$PARENT_CMD---mkmod" ]]  ||
+          [[ "$pstree_cmds"  =~   "su---$PARENT_CMD---mkmod" ]]; then
+         PARENT_CMD_TYPE="login_shell"
+       else
+         # very screwy: if login is bash & tcsh or csh executed, ps shows -csh or -sh!! (yes,sh)
+         # can pick up correct shell from pstree entry before ---mkmod (e.g. tcsh---mkmod)
+         PARENT_CMD=`echo $pstree_cmds | grep -Po  '[a-z]{0,2}sh(?=---mkmod)'`
+       fi
+     fi
+   
+     echo "  -> PARENT_CMD: $PARENT_CMD  PARENT_CMD_TYPE: $PARENT_CMD_TYPE"
+   
+   }
+#################################################################################
+
+
+
+#vv #############################################################################
+   function get_login_shell() {
+   
+     # Finds login shell of $USER. Uses finger.  Otherwise uses parent shell if it is a login shell.
+     # Login shell must be one of "supported_shells", see array below.
+     # If not set to similar supported shell in MKMOD_LOGIN_SHELL environment variable.
+   
+     echo $'\n'"  -> LOGIN SHELL DETERMINATION:"
+   
+     LOGIN_SHELL="unknown"
+   
+     local login_shell=""
+     local login_shell_by="MKMOD_LOGIN_SHELL, finger or parent proc being login shell"
+     local supported_shells=(csh tcsh bash zsh)
+   
+   
+     if [[ ${MKMOD_LOGIN_SHELL:+hasvalue} == hasvalue ]]; then
+        LOGIN_SHELL=$MKMOD_LOGIN_SHELL
+        login_shell_by="MKMOD_LOGIN_SHELL Env Var"
+     else
+        finger -m $USER 2>&1 |grep Shell:  2>&1|sed  's/.*Shell:\s*\([a-z,\/]*\)/\1/' 2>&1  > /dev/null
+        if [[ ! ${PIPESTATUS[@]} =~ 1 ]]; then
+           LOGIN_SHELL=`finger -m $USER |grep Shell: |sed  's/.*Shell:\s*\([a-z,\/]*\)/\1/'`
+           login_shell_by="finger"
+        else
+           if [[ ${PARENT_CMD_TYPE:+hasvalue}  == hasvalue ]] && [[ ${PARENT_CMD_TYPE}  == login_shell ]]; then
+              LOGIN_SHELL=$PARENT_CMD
+              login_shell_by="parent being a login shell"
+           fi
+        fi
+     fi
+   
+     #           Take off path (Next section only uses base name, bash, tcsh, etc.)  
+   
+     if [[ ! $LOGIN_SHELL =~ unknown ]]; then
+        LOGIN_SHELL=$(basename $LOGIN_SHELL)
+   
+        local real_shell=$(readlink -f `which $LOGIN_SHELL`)
+   
+        [[ $LOGIN_SHELL == csh ]] && [[ $real_shell =~ tcsh ]] && LOGIN_SHELL=tcsh && login_shell_status=linked
+        [[ $LOGIN_SHELL ==  sh ]] && [[ $real_shell =~ bash ]] && LOGIN_SHELL=bash && login_shell_status=linked
+        [[ $LOGIN_SHELL == ksh ]] && [[ $real_shell =~ bash ]] && LOGIN_SHELL=bash && login_shell_status=linked
+     fi
+   
+     #                                            Check to make sure LOGIN_SHELL is a supported shell 
+     for shell in ${supported_shells[@]} ; do
+        [[ $LOGIN_SHELL == $shell ]] && login_shell=$shell
+     done
+   
+     #                                       # No determined login shell
+     if [[ $LOGIN_SHELL =~ unknown ]]; then
+        echo "  -> INTERNAL ERROR: Could not determine login shell from:"
+        echo "  ->                 $login_shell_by."
+        echo "  ->                 Please set MKMOD_LOGIN_SHELL to one of"
+        echo "  ->                 the supported login shells (${supported_shells[@]})."
+        exit
+     fi
+   
+     if [[ ! ${login_shell:+hasvalue} == hasvalue ]]; then
+        echo "  -> ERROR: Login shell \"$LOGIN_SHELL\" as determined $login_shell_by is not supported." 
+        echo "  ->        Please set MKMOD_LOGIN_SHELL to similar supported login shell:"
+        echo "  ->        (${supported_shells[@]})."
+        exit
+     fi
+   
+     echo "  -> As determined by \"$login_shell_by\", $LOGIN_SHELL is assumed to be your login shell."
+     [[ ! ${MKMOD_LOGIN_SHELL:+hasvalue} == hasvalue ]] &&
+          echo "  -> This can be changed by setting your shell in MKMOD_LOGIN_SHELL."
+   }
+#################################################################################
