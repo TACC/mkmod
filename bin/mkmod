@@ -81,15 +81,19 @@ MKMOD_HELP=$(sed 's/^#//' <<'EOF'
 #
 #      10.) HELP_FILE                (default= finds modules_help file relative to $TOPDIR, use this 
 #                                              var to set pathname for your own help file.
-#                                              Set to "none" to avoid searching for file. 
+#                                              Set to "none" to avoid searching for file.) 
 #      11.) WHATIS_FILE              (default= finds whatis_help file relative to $TOPDIR, use this 
 #                                              var to set pathname for your own whatis file.
-#                                              Set to "none" to avoid searching for file. 
+#                                              Set to "none" to avoid searching for file.) 
 #      12.) MODULEFILE_FILE          (default= finds modulefile.lua (nosuffix=tcl) file relative to $TOPDIR,
 #                                              use this var to set pathname for your own help file.
-#                                              Set to "none" to avoid searching for file. 
-#      13.) USE_IN_SHELLRC           (if "none", no .<shell>rc check and insert-- e.g. use for RPMS)
-#      14.) MKMOD_DEBUG              (if set, modulefile goes to std out, no check and insert of .<shell>rc)
+#                                              Set to "none" to avoid searching for file.) 
+#           USE_IN_SHELLRC           (         DEPRECATED-- if "none", no .<shell>rc check and insert)
+#      13.) SET_STARTUP_MODULEPATH   (not set  If interactive (login shell) ask to modify startup
+#                                              file if MODULEPATH needs to be set.)
+#                                      yes     Force startup file modification to set MODULEPATH, if needed)
+#                                      no      Enforce no modification of startup file)
+#      14.) MKMOD_DEBUG              (if set,  modulefile goes to std out, no check and insert of .<shell>rc)
 #
 #  
 #       PATHS -- RELATIVE to TOPDIR
@@ -183,7 +187,7 @@ USAGE='
 
        mkmod_base_list=( NAME VER TOPDIR )
        mkmod_info_list=( WHATIS HELP_MESSAGE )
-        mkmod_use_list=( USE_IN_SHELLRC STARTUP_FILE_SUFFIX MKMOD_LOGIN_SHELL)
+        mkmod_use_list=( STARTUP_FILE_SUFFIX MKMOD_LOGIN_SHELL SET_STARTUP_MODULEPATH)
    mkmod_modfiles_list=( PREFIX SITE_INSTALL MODULEFILES_DIR GROUP_ACCESS )
      mkmod_prereq_list=( FAMILY COMPILER_PREREQ MPI_PREREQ AUTO_PREREQ PREREQ )
        mkmod_file_list=( HELP_FILE WHATIS_FILE MODULEFILE_FILE )
@@ -1607,11 +1611,12 @@ if [[ $create_module_file == true ]]; then
 
   rm -f $MODULEFILE_EVALD_FILE $HELP_EVALD_FILE $WHATIS_EVALD_FILE
 
-
-#############END--^      CREATE MODULEFILE
 fi #create_module_file == true
 
-  
+#############END--^      CREATE MODULEFILE
+
+#--------------------------------------------------------------------------------------------------
+
 #############BEG--v      GROUP ACCESS REQUEST
   
 ##if [[ $GROUP_ACCESS =~ [^[:space:]] ]]; then
@@ -1706,44 +1711,48 @@ fi #create_module_file == true
 
 #############END--^      GROUP ACCESS REQUEST
 
+#--------------------------------------------------------------------------------
+
+#############BEG--v      MODULEPATH
+
+#              Include "module use <modulefile_dir" in startup file if necessary
+  
 if [[ $module_use_in_startup == true ]]; then  
-#--------------------------------------------------------------------------------------------------
 
  # Get the parent command. if PARENT_CMD_TYPE=login_shell, OK to request insertions
 
  get_parent_cmd 
 
+# v--  Determine if MODULEPATH block should be executed & whether forced or permission is asked.
+
  # if parent command is a login shell, OK to ask to insert
- # if SET_STARTUP_MODULEPATH is set, don't ask, just do it if startup file(s) needs it
+ # if SET_STARTUP_MODULEPATH is set to yes DON'T ASK ask, just do it if startup file(s) needs it
+ # if SET_STARTUP_MODULEPATH is no         DON'T EVEN consider whether MODULEPATH needs to be set.
 
- if [[ "$PARENT_CMD_TYPE" == login_shell ]] || [[ "${SET_STARTUP_MODULEFILE:+hasvalue}" == hasvalue ]]; then
+ if ([[ ! "${SET_STARTUP_MODULEPATH:+hasvalue}" == hasvalue ]] && [[ "$PARENT_CMD_TYPE"  == login_shell ]]) ||
+    ([[   "${SET_STARTUP_MODULEPATH:+hasvalue}" == hasvalue ]] && [[ "${SET_STARTUP_MODULEPATH}" == yes ]]) ; then
 
-  get_login_shell
+    get_login_shell
 
-  #If parent is login shell, ask permission
+    #If parent is login shell, ask permission
 
-  [[ "$PARENT_CMD_TYPE" == login_shell ]] && ASK=yes   #If parent is login shell, ask permission
+    [[ "$PARENT_CMD_TYPE" == login_shell ]] && ASK=yes   #If parent is login shell, ask permission
 
-  # If SET_STARTUP_MODULEFILE is set, don't ask permission (assume permission, i.e. YESNO_ANSWER=yes).
+    # If SET_STARTUP_MODULEPATH is set, don't ask permission (assume permission, i.e. YESNO_ANSWER=yes).
 
-  [[ "${SET_STARTUP_MODULEFILE:+hasvalue}" == hasvalue ]] && ASK=no && YESNO_ANSWER="yes"   
+    [[ "${SET_STARTUP_MODULEPATH:+hasvalue}" == hasvalue ]] && ASK=no && YESNO_ANSWER="yes"   
 
 
-#############BEG--v      MODULE USE IN SHELLRC
-#                                    Check for "module use $MODULEFILE_DIR" in STARTUPS SCRIPTS
-#                                    Insert if not found, and logic to execute just once
-#                                    bash, csh, tcsh and zsh supported
-
-  if [[ ! ${MKMOD_DEBUG:+hasvalue}  == hasvalue ]] && [[ ! "$USE_IN_SHELLRC"  =~ none  ]] ; then
     echo $'\n'"  -> MODULE USE in STARTUP FILE:"
 
-###############################################################################
+# ^--  Determine if MODULEPATH ...
+
 
 # v--  Determine if site has an assigned suffix
-
-    #SITE=NERSC     ###just for testing
-    #SITE=unknown     ###just for testing
-    #SITE_STARTUP_FILE_SUFFIX=""  ###just for testing
+    #v for testing
+    #SITE=NERSC
+    #SITE=unknown
+    #SITE_STARTUP_FILE_SUFFIX=""
  
     if [[ ${MKMOD_STARTUP_FILE_SUFFIX:+hasvalue} == hasvalue ]]; then
  
@@ -1768,7 +1777,6 @@ if [[ $module_use_in_startup == true ]]; then
     fi
 # ^--  Determine if site has an assigned suffix
 
-###############################################################################
 
 # v--  Shell Info
    # tcsh RC files:  sources .tcshrc if present and quits; 
@@ -1791,7 +1799,10 @@ if [[ $module_use_in_startup == true ]]; then
    #  
 # ^--  Shell Info
 
-############################ BEGIN FROM SHELL
+#              Check for "module use $MODULEFILE_DIR" in STARTUPS SCRIPTS
+#              Insert if not found. Also include guard to execute just once.
+#              Bash, csh, tcsh and zsh supported.
+
     # Next line is for testing only
     [[ ${units_and_vars[@]}    =~ "install_mod_use"   ]] && set_unit_test_vars install_mod_use
 
@@ -2016,7 +2027,6 @@ if [[ $module_use_in_startup == true ]]; then
 
           has_use_in_ENVFILE=no
 
-        ##[[ ! $zshenv_access =~ [^[:space:]] ]] && print_no_startup_file ZSH  .zshenv  $MODULEFILES_DIR && \
           [[ ! ${zshenv_access:+hasvalue} == hasvalue ]] && print_no_startup_file ZSH  .zshenv  $MODULEFILES_DIR && \
                                                     ENVFILE=.zshenv; touch $HOME/$ENVFILE; chmod 700 $HOME/$ENVFILE
 
@@ -2053,16 +2063,18 @@ if [[ $module_use_in_startup == true ]]; then
     esac
 
     if [[ $insert_use == yes ]]; then
-      echo "  -> **************************************************************************"$'\n'
-      echo "  -> DON'T FORGET TO LOGOUT and LOGIN to activate "module use " in $FINISHED_SHELLS startups."
-      echo $'\n'"  -> **************************************************************************"
+      echo "  -> *******************************************************************************"$'\n'
+      echo "  -> DON'T FORGET TO LOGOUT and LOGIN to activate \"module use\" in"
+      echo "                                         $FINISHED_SHELLS startups."
+      echo $'\n'"  -> *******************************************************************************"
     fi
 
     echo "  -> Finished with \"module use\" setup for $FINISHED_SHELLS shell."
 
-  fi    #DEBUG--don't do
- fi    #if parent is login shell
+ fi    #if parent is login shell or forced insertion if necessary SET_STARTUP_MODULEPATH=yes
+
 fi    #module_use_in_startup == true
-#############END--^      MODULE USE IN SHELLRC
+
+#############END--^      MODULEPATH
 
 #https://stackoverflow.com/questions/6676568/how-to-print-in-a-tabular-format-in-tcl
