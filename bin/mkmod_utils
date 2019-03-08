@@ -806,42 +806,46 @@
    function get_parent_cmd(){
    
      # ps_ppid_cmd=$( ps --no-headers -o cmd $PPID )
-   
      # If login shell parent_commands has - prefix and base shell name:  -bash, -tcsh, -zsh
      # If       shell parent_commands has base shell name:  bash, tcsh, zsh, etc
      # If script, ps_ppid_cmd has form "bash <script_name>"
    
-     local ps_ppid_cmd pstree_cmds
-   
-         ps_ppid_cmd=$( ps --no-headers -o cmd $PPID )       ## get parent command
-     PARENT_CMD=$(echo $ps_ppid_cmd | sed 's/^.*\s//')   ## rm everything up to<scriptname>
-     pstree_cmds=$( pstree -A -s $$ )         ## ...sshd---<proc_names>---mkmod---pstree
-                                               ## ...sshd---<shell     >---mkmod---pstree
-     #pstree_pid_cmds=$( pstree -A -s -p $$ )
-   
-     PARENT_CMD_TYPE="script"
-     if [[ "$PARENT_CMD" =~  ^-.{0,2}sh$ ]] ; then
-       PARENT_CMD=${PARENT_CMD:1}              ## strip off "-" prefix
-       PARENT_CMD_TYPE="shell"                 ## Must be shell if prefix is present
+     # ps_ppid_cmd=$( ps --no-headers -o ucmd $PPID )  This gives correct shall name
+     #                                                 if csh|tcsh is made from bash
+    ps_ppid_ucmd=$( ps --no-headers -o ucmd $PPID )        ## get parent ucommand
+       PARENT_CMD=$(echo $ps_ppid_ucmd | sed 's/^.*\s//')   ## rm everything up to<scriptname>
+
+     pstree_cmds=$( pstree -A -s $$ 2>/dev/null )
+     if [[ $? != 0 ]]; then
+       ps_stat=$( ps ho stat p $PPID )
+     else                               ## now pstree without 2>/dev/null to get:
+       pstree_cmds=$( pstree -A -s $$ ) ## ...sshd---<proc_names>---mkmod---pstree
      fi
+
+     PARENT_CMD_TYPE="script"
+
      [[ "$PARENT_CMD" =~  ^.{0,2}sh$ ]]  && PARENT_CMD_TYPE="shell"
-   
-     # Complication: if csh is executed in bash shell it appears with a prefix (-csh). :)
-     #               Must be positive it is a login shell:
-     #               A real login shell will appear as ...sshd---<shell>---mkmod in pstree.
-   
+
+     [[ "$ps_stat" == Ss ]] && PARENT_CMD_TYPE="login_shell"  #if parent is leader
+
      if [[ $PARENT_CMD_TYPE == shell ]]; then
+
        if [[ "$pstree_cmds"  =~ "sshd---$PARENT_CMD---mkmod" ]]  ||
           [[ "$pstree_cmds"  =~   "su---$PARENT_CMD---mkmod" ]]; then
-         PARENT_CMD_TYPE="login_shell"
-       else
-         # very screwy: if login is bash & tcsh or csh executed, ps shows -csh or -sh!! (yes,sh)
-         # can pick up correct shell from pstree entry before ---mkmod (e.g. tcsh---mkmod)
-         PARENT_CMD=`echo $pstree_cmds | grep -Po  '[a-z]{0,2}sh(?=---mkmod)'`
+
+          PARENT_CMD_TYPE="login_shell"
        fi
+
+       if [[ "${pstree_cmds:+hasvalue}" == hasvalue ]]; then
+          [[ "$ps_stat" == Ss ]] &&
+
+            PARENT_CMD_TYPE="login_shell"  #i.e. if parent is leader          
+       fi
+
      fi
-   
+
      echo "  -> PARENT_CMD: $PARENT_CMD  PARENT_CMD_TYPE: $PARENT_CMD_TYPE"
+
    
    }
 #################################################################################
