@@ -1860,8 +1860,8 @@ if [[ $module_use_in_startup == true ]]; then
 
                 insert_use=yes
                 echo "  -> Inserted \"module use\" command in $LOGINFILE."
-                ASK=no #no need to ask permission again (for RCFILE)
                fi
+               ASK=no #no need to ask permission again (for RCFILE)
 
              fi
 
