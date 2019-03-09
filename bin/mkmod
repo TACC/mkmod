@@ -228,14 +228,12 @@ USAGE='
      get_set_envs    envs_string                            # gets the set envs as a string
      set_envs_list=($envs_string)                           # create bash array from string
   
-##kfm[[ $set_envs_list =~ [^[:space:]] ]] && echo "$SHELL_UNSET ${set_envs_list[@]}"
      [[ ${set_envs_list:+hasvalue} == hasvalue ]] && echo "$SHELL_UNSET ${set_envs_list[@]}"
      exit 0
   fi
                                     #unit_tests   Pick up unit tests here.
   if [[ $1 == "-u" ]] || [[ $1 == "--unit_tests" ]]; then
      shift
-##kfmif [[ ! $1 =~ [^[:space:]] ]]; then
      if [[ ! ${1:+hasvalue} == hasvalue ]]; then
         echo "  ->  ERROR: -u option requires at least one argument" 
         echo "  ->         -u unit_test_name1@var1=val1,var2=val2,...,varn=valn[;unit_test_name2@var1=val1,var2=val2...]..."
@@ -255,10 +253,6 @@ USAGE='
 
 
 # ENVIRONMENT PROCESSING
-##kfm
-# if [[ ! "$NAME"    =~ [^[:space:]]  ]] ||
-#    [[ ! "$VER"     =~ [^[:space:]]  ]] ||
-#    [[ ! "$TOPDIR"  =~ [^[:space:]]  ]] ;  then
 #
   if [[ ! ${NAME:+hasvalue}    == hasvalue  ]] ||
      [[ ! ${VER:+hasvalue}     == hasvalue  ]] ||
@@ -294,13 +288,11 @@ USAGE='
 
 # v-- DETERMINE if using LMOD OR TMOD
 
-##if [[ ! $MKMOD_FLAVOR =~ [^[:space:]] ]]; then
   if [[ ! ${MKMOD_FLAVOR:+hasvalue} == hasvalue ]]; then
          # Determine whether to use tmod or lmod.
          # modver=(`module --version 2>&1`)    #Uh tmodule 3.x displays version and returns "1" !
          # if [[ ! $? == "0" ]]; then
          # Use MODULESHOME variable as indicator
-  ##if [[ ! "$MODULESHOME" =~ [^[:space:]]  ]]; then
     if [[ ! ${MODULESHOME:+hasvalue} == hasvalue ]]; then
      echo "  ->  ERROR: Found neither Tmod (TCL) nor Lmod (Lua) to exist on this machine."
      echo "  ->         mkmod supports only these flavors of modules."
@@ -386,7 +378,6 @@ USAGE='
 #                     # Checking for an application environment modules file (modulefile)
 
 #                     # If MODULEFILE_FILE is NOT set, search for one in the App directory (TOPDIR).
-##if [[ ! $MODULEFILE_FILE =~ [^[:space:]] ]]; then
   if [[ ! ${MODULEFILE_FILE:+hasvalue} == hasvalue ]]; then
     provided_modulefile=no
 
@@ -434,7 +425,6 @@ USAGE='
      evaluate $MODULEFILE_FILE $FILE_TYPE $MODULEFILE_EVALD_FILE
   fi
 
-##if [[ $MKMOD_DEBUG =~ [^[:space:]] ]] && [[ $provided_modulefile == yes ]]; then
   if [[ ${MKMOD_DEBUG:+hasvalue} == hasvalue ]] && [[ $provided_modulefile == yes ]]; then
      echo $'\n\n\n'"-------------------------------------------------------------------------------"
      cat "$MODULEFILE_EVALD_FILE"
@@ -447,7 +437,6 @@ USAGE='
 # v-- WHATIS_FILE
 
 #                     # If WHATIS_FILE is NOT set, search for one in the App directory (TOPDIR).
-##if [[ ! $WHATIS_FILE =~ [^[:space:]] ]]; then
   if [[ ! ${WHATIS_FILE:+hasvalue} == hasvalue ]]; then
     provided_whatis=no
 
@@ -495,7 +484,6 @@ USAGE='
      evaluate $WHATIS_FILE $FILE_TYPE $WHATIS_EVALD_FILE
   fi
 
-##if [[ $MKMOD_DEBUG =~ [^[:space:]] ]] && [[ $provided_whatis == yes ]]; then
   if [[ ${MKMOD_DEBUG:+hasvalue} == hasvalue ]] && [[ $provided_whatis == yes ]]; then
      echo $'\n\n\n'"-------------------------------------------------------------------------------"
      cat "$WHATIS_EVALD_FILE"
@@ -508,7 +496,6 @@ USAGE='
 # v-- HELP_FILE
 
 #                     # If HELP_FILE is NOT set, search for one in the App directory (TOPDIR).
-##if [[ ! $HELP_FILE =~ [^[:space:]] ]]; then
   if [[ ! ${HELP_FILE:+hasvalue} == hasvalue ]]; then
     provided_help=no
 
@@ -559,7 +546,6 @@ USAGE='
      evaluate $HELP_FILE $FILE_TYPE $HELP_EVALD_FILE
   fi
 
-##if [[ $MKMOD_DEBUG =~ [^[:space:]] ]] && [[ $provided_whatis == yes ]]; then
   if [[ ${MKMOD_DEBUG:+hasvalue} == hasvalue ]] && [[ $provided_whatis == yes ]]; then
      echo $'\n\n\n'"-------------------------------------------------------------------------------"
      cat "$HELP_EVALD_FILE"
@@ -604,7 +590,6 @@ USAGE='
   echo "  -> Prefix for informational env. var. names is \"$PREFIX_cap\"."
 
   
-##if [[ ! "$MODULEFILES_DIR"  =~ [^[:space:]]  ]]; then
   if [[ ! ${MODULEFILES_DIR:+hasvalue}  == hasvalue ]]; then
 
      MODULEFILES_DIR=$HOME/modulefiles      # Default place to put modulefiles
@@ -658,7 +643,6 @@ USAGE='
 
   [[ $provided_help == yes ]] &&  echo "  -> Including help message from $HELP_FILE file."
 
-##if [[ "$HELP_MESSAGE"  =~ [^[:space:]]  ]]; then
   if [[ ${HELP_MESSAGE:+hasvalue}  == hasvalue  ]]; then
      HELP_MESSAGE_INC=message
      help_env_text=yes
@@ -676,7 +660,6 @@ USAGE='
   #                          # module usage (including prerequisites, and version, respectively:
   #                          # ( dirs paths envs module version )
   #                          
-##if [[ ! $AUTO_HELP =~ [^[:space:]] ]]; then
   if [[ ! ${AUTO_HELP:+hasvalue} == hasvalue ]]; then
                         # Include all automatic help messages
      AUTO_HELP_INC=( dirs paths envs module version )
@@ -698,7 +681,6 @@ USAGE='
 
 # v-- Family
 
-##if [[ ! "$FAMILY"        =~ [^[:space:]]  ]]; then
   if [[ ! ${FAMILY:+hasvalue}        == hasvalue  ]]; then
      FAMILY=$NAME_sml
   else
@@ -713,7 +695,6 @@ USAGE='
 # v-- ENV VARS
   # topdir_env_list
   
-     ##if [[ ! "$topdir_env_list"  =~ [^[:space:]] ]] ; then
        if [[ ! ${topdir_env_list:+hasvalue}  == hasvalue ]] ; then
          #topdir_env_default=( bin lib libs inc man doc docs )
           topdir_env_default=( bin lib libs lib64 include man doc docs share tools bench benchmark data Examples examples tutorials)
@@ -735,7 +716,6 @@ USAGE='
  
 # v-- TOPDIR PATHS
 
-     ##if [[ ! "$TOPDIR_PATH_LIST" =~ [^[:space:]]  ]]; then
        if [[ ! ${TOPDIR_PATH_LIST:+hasvalue} == hasvalue  ]]; then
           if [[ -d $TOPDIR/bin ]]; then
              topdir_path_list+=(bin)
@@ -757,7 +737,6 @@ USAGE='
 
 # v-- TOPDIR LD_LIBRARY_PATHS
 
-     ##if [[ ! "$TOPDIR_LDPATH_LIST" =~ [^[:space:]]  ]]; then
        if [[ ! ${TOPDIR_LDPATH_LIST:+hasvalue} == hasvalue  ]]; then
           [[ -d $TOPDIR/lib   ]] && topdir_ldpath_list=(lib)
           [[ -d $TOPDIR/libs  ]] && topdir_ldpath_list=(libs)
@@ -776,7 +755,6 @@ USAGE='
 
 # v-- TOPDIR MAN_PATHS
 
-     ##if [[ ! "$TOPDIR_MANPATH_LIST" =~ [^[:space:]]  ]]; then
        if [[ ! ${TOPDIR_MANPATH_LIST:+hasvalue} == hasvalue  ]]; then
           if [[ -d $TOPDIR/man ]]; then
              topdir_manpath_list=(man)
@@ -795,7 +773,6 @@ USAGE='
 # v-- TOPDIR PYTHONPATHS
 
 
-     ##if [[ ! "$TOPDIR_PYTHONPATH_LIST" =~ [^[:space:]]  ]]; then
        if [[ ! ${TOPDIR_PYTHONPATH_LIST:+hasvalue} == hasvalue ]]; then
           if [[ -d $TOPDIR/python ]]; then
              topdir_pythonpath_list=(python)
@@ -816,7 +793,6 @@ USAGE='
 # v-- TOPDIR PKGCONFIGPATHS
 
 
-     ##if [[ ! "$TOPDIR_PKGCONFIGPATH_LIST" =~ [^[:space:]]  ]]; then
        if [[ ! ${TOPDIR_PKGCONFIGPATH_LIST:+hasvalue} == hasvalue ]]; then
           if [[ -d $TOPDIR/pkgconfig ]]; then
              topdir_pkgconfigpath_list=(pkgconfig)
@@ -851,7 +827,6 @@ USAGE='
 # v-- WHATIS
 
   whatis_env_text=no
-##if [[ "$WHATIS" =~ [^[:space:]]  ]]; then
   if [[ ${WHATIS:+hasvalue} == hasvalue ]]; then
      whatis_env_text=yes
      echo "  -> Including \"whatis\" information in the modulefile."
@@ -873,7 +848,6 @@ USAGE='
   fi
 
                 # Version 1 now uses numbered variables (WHATIS1, WHATIS2,...)
-##if [[  "$WHATIS1"  =~ [^[:space:]] ]]; then  #only do if WHATISx exist
   if [[  ${WHATIS1:+hasvalue}  == hasvalue ]]; then  #only do if WHATISx exist
      whatis_env_text=yes
      for i in `seq 1 30`; do
@@ -919,7 +893,6 @@ USAGE='
         a="${text##*( )}"; trimmed_text="${a%%*( )}"
         shopt -u extglob
 #                             #Don't want blank lines.
-      ##if [[ $trimmed_text =~ [^[:space:]] ]]; then
         if [[ ${trimmed_text:+hasvalue} == hasvalue ]]; then
           if [[ $FLAVOR == "lmod" ]]; then
              module+=( "whatis(\"$trimmed_text\")" )
@@ -938,7 +911,6 @@ USAGE='
   [[ $FLAVOR == "tmod" ]] && module+=( "$t_divider" )
   
   if [[ $FLAVOR == "lmod" ]] ; then
-   ##[[ "$FAMILY" =~ [^[:space:]]  ]]&&  module+=( "family(\"$FAMILY\")" )
      [[ ${FAMILY:+hasvalue} == hasvalue  ]]&&  module+=( "family(\"$FAMILY\")" )
   fi
 
@@ -953,9 +925,7 @@ USAGE='
 
     comp_mpi_prereq=()
 
-  ##if [[ ! "$COMPILER_PREREQ" =~ [^[:space:]]  ]]; then
     if [[ ! ${COMPILER_PREREQ:+hasvalue} == hasvalue  ]]; then
-    ##if [[ "$LMOD_FAMILY_COMPILER_VERSION" =~ [^[:space:]] ]] && [[ "$LMOD_FAMILY_COMPILER" =~ [^[:space:]] ]]; then
       if [[ ${LMOD_FAMILY_COMPILER_VERSION:+hasvalue} == hasvalue ]] && [[ ${LMOD_FAMILY_COMPILER:+hasvalue} =~ hasvalue ]]; then
         COMPILER_PREREQ=$LMOD_FAMILY_COMPILER/$LMOD_FAMILY_COMPILER_VERSION
         echo "  -> Setting COMPILER PREREQ to $LMOD_FAMILY_COMPILER/$LMOD_FAMILY_COMPILER_VERSION"
@@ -963,7 +933,6 @@ USAGE='
        #module+=( "prereq(\"$COMPILER_PREREQ\")" )
       fi
     else  # COMPILER_PREREQ set
-    ##if [[ "$LMOD_FAMILY_COMPILER_VERSION" =~ [^[:space:]] ]] && [[ "$LMOD_FAMILY_COMPILER" =~ [^[:space:]] ]]; then
       if [[ ${LMOD_FAMILY_COMPILER_VERSION:+hasvalue} == hasvalue ]] && [[ ${LMOD_FAMILY_COMPILER:+hasvalue} == hasvalue ]]; then
           if [[ $LMOD_FAMILY_COMPILER/$LMOD_FAMILY_COMPILER_VERSION != $COMPILER_PREREQ ]]; then
             echo ""
@@ -982,10 +951,8 @@ USAGE='
   
 #   v-MPI lmod
 
-  ##if [[ ! "$MPI_PREREQ" =~ [^[:space:]]  ]]; then
     if [[ ! ${MPI_PREREQ:+hasvalue} == hasvalue  ]]; then
   
-    ##if [[ "$LMOD_FAMILY_MPI_VERSION" =~ [^[:space:]] ]] && [[ "$LMOD_FAMILY_MPI" =~ [^[:space:]] ]]; then
       if [[ ${LMOD_FAMILY_MPI_VERSION:+hasvalue} == hasvalue ]] && [[ ${LMOD_FAMILY_MPI:+hasvalue} == hasvalue ]]; then
         MPI_PREREQ=$LMOD_FAMILY_MPI/$LMOD_FAMILY_MPI_VERSION
         echo "  -> Setting MPI PREREQ to $LMOD_FAMILY_MPI/$LMOD_FAMILY_MPI_VERSION"
@@ -995,7 +962,6 @@ USAGE='
   
     else  # MPI_PREREQ set
   
-    ##if [[ "$LMOD_FAMILY_MPI_VERSION" =~ [^[:space:]] ]] && [[ "$LMOD_FAMILY_MPI" =~ [^[:space:]] ]]; then
       if [[ ${LMOD_FAMILY_MPI_VERSION:+hasvalue} == hasvalue ]] && [[ ${LMOD_FAMILY_MPI:+hasvalue} == hasvalue ]]; then
           if [[ $LMOD_FAMILY_MPI/$LMOD_FAMILY_MPI_VERSION != $MPI_PREREQ ]]; then
             echo "" 
@@ -1009,7 +975,6 @@ USAGE='
       #module+=( "prereq(\"$MPI_PREREQ\")" )
     fi
  
-  ##if [[ "$comp_mpi_prereq" =~ [^[:space:]]  ]]; then
     if [[ ${comp_mpi_prereq:+hasvalue} == hasvalue ]]; then
       list=""; comma=""
       for prereq in "${comp_mpi_prereq[@]}"; do
@@ -1039,7 +1004,6 @@ USAGE='
           if [[   ${loaded_compiler%%/*} =~ ^${compiler} ]] &&
              [[ ! ${loaded_compiler%%/*} =~ mpi ]]; then    #Uh sites used: intel and intelmpi
              comp_prereq+=($loaded_compiler)
-           ##[[ $MKMOD_DEBUG =~ [^[:space:]] ]] &&  
              [[ ${MKMOD_DEBUG:+hasvalue} == hasvalue ]] &&  
                 echo "Found compiler=$compiler  loaded_compiler=$loaded_compiler"
           fi
@@ -1047,7 +1011,6 @@ USAGE='
  
     done
  
-  ##if [[ ! "$COMPILER_PREREQ" =~ [^[:space:]]  ]]; then
     if [[ ! ${COMPILER_PREREQ:+hasvalue} == hasvalue  ]]; then
  
        if (( ${#comp_prereq[@]} > 1 )); then
@@ -1116,7 +1079,6 @@ USAGE='
           if [[ ${loaded_MOD%%/*} =~ "$MPI" ]]; then
              MPI_loaded_cnt=$(( MPI_loaded_cnt + 1 ))
              loaded_MPIs+=( $loaded_MOD )
-           ##[[ $MKMOD_DEBUG =~ [^[:space:]] ]] &&  
              [[ ${MKMOD_DEBUG:+hasvalue} == hasvalue ]] &&  
                 echo "Found MPI=$MPI  loaded_MPI=$loaded_MPI"
           fi
@@ -1125,7 +1087,6 @@ USAGE='
     done
                           #MPI_PREREQ must be a specific MPI
                           #Only 1 is ever allowed
-   #if [[ $MPI_loaded_cnt > 1 ]] && [[ ! "$MPI_PREREQ" =~ [^[:space:]]  ]]; then
     if [[ $MPI_loaded_cnt > 1 ]] && [[ ! ${MPI_PREREQ:+hasvalue} == hasvalue ]]; then
        echo "  -> ERROR:  Houston, we have a problem."
        echo "  ->         Found two or more MPIs loaded at the same time:"
@@ -1135,7 +1096,6 @@ USAGE='
        exit
     fi
  
-  ##if [[ ! "$MPI_PREREQ" =~ [^[:space:]]  ]]; then 
     if [[ ! ${MPI_PREREQ:+hasvalue} == hasvalue ]]; then 
  
      if [[ $MPI_loaded_cnt > 0 ]]; then
@@ -1176,7 +1136,6 @@ USAGE='
 
                #Now add explict PREREQS
 
-##if [[ $PREREQ =~ [^[:space:]] ]]; then
   if [[ ${PREREQ:+hasvalue} == hasvalue ]]; then
     IFS=' ' read -r -a prereqs <<< "$PREREQ"
     for prereq in  "${prereqs[@]}"; do
@@ -1254,7 +1213,6 @@ USAGE='
   
                              # If no topdir bin directory exist, put topdir in PATH
                                                           at=""
-##if [[ ! "$topdir_path_list" =~ [^[:space:]]  ]]; then  
   if [[ ! ${topdir_path_list:+hasvalue} == hasvalue ]]; then  
     if [[ $FLAVOR == "lmod" ]]; then
      module+=( "prepend_path(\"PATH\", topdir)" )
@@ -1381,7 +1339,6 @@ USAGE='
 
   
   
-##if [[ "$MKMOD_DEBUG"  =~ [^[:space:]]  ]]; then
   if [[ ${MKMOD_DEBUG:+hasvalue}  == hasvalue ]]; then
        FILE=/tmp/${USER}_${MODULE}_$$
   else
@@ -1454,12 +1411,10 @@ USAGE='
 
                     # Include user-defined environment variables
   if [[ ${AUTO_HELP_INC[@]} =~ envs ]]; then
-   ##if [[  "$ENV1"  =~ [^[:space:]] ]]; then  #only do if ENVx exist
      if [[  ${ENV1:+hasvalue}  == hasvalue ]]; then  #only do if ENVx exist
         HELP_ENVS=$'\n   ENV VAR - SUPPORT' 
         for i in `seq 1 30`; do
           env=$( eval echo \"\$ENV$i\" )
-        ##if [[  "$env"  =~ [^[:space:]] ]]; then
           if [[  ${env:+hasvalue}  == hasvalue ]]; then
             IFS='= ' read -r key val <<< "$env"
            #line=$(printf "%20s = %s" "$key" "$val")
@@ -1477,7 +1432,6 @@ USAGE='
   fi
  
  
-##if [[ "$MKMOD_DEBUG" =~ [^[:space:]] ]]; then
   if [[ ${MKMOD_DEBUG:+hasvalue} == hasvalue ]]; then
      echo "  ->> MKMOD_DEBUG: These AUTOMATIC HELP MESSAGES were selected to include in the modulefile:"
      echo "  ->>              ${AUTO_HELP_INC[@]}"
@@ -1566,7 +1520,6 @@ if [[ $create_module_file == true ]]; then
                   # Include user-defined environment variables
   for i in `seq 1 30`; do
     env=$( eval echo \"\$ENV$i\" )
-  ##if [[  "$env"  =~ [^[:space:]] ]]; then
     if [[  ${env:+hasvalue}  == hasvalue ]]; then
        IFS='= ' read -r key val <<< "$env"
                        if [[ $FLAVOR == "lmod" ]]; then
@@ -1581,7 +1534,6 @@ if [[ $create_module_file == true ]]; then
 
   #v--CMDS
 
-##[[ $ENV1 =~ [^[:space:]] ]] && echo ""                >> $FILE
   [[ ${ENV1:+hasvalue} == hasvalue ]] && echo ""                >> $FILE
 
                   # Include user-defined (custom) LUA commands
@@ -1591,11 +1543,9 @@ if [[ $create_module_file == true ]]; then
     [[  ${cmd:+hasvalue}  == hasvalue ]] &&         echo "$cmd" >> $FILE
   done
 
-##[[ $CMD1 =~ [^[:space:]] ]] && echo ""                >> $FILE
   [[ ${CMD1:+hasvalue} == hasvalue ]] && echo ""                >> $FILE
 
 
-##if [[ ! "$MKMOD_DEBUG"  =~ [^[:space:]]  ]]; then
   if [[ ! ${MKMOD_DEBUG:+hasvalue}  == hasvalue ]]; then
      echo "  -> Finished creating and installing the modulefile for $NAME_cap."
      echo ""
@@ -1619,7 +1569,6 @@ fi #create_module_file == true
 
 #############BEG--v      GROUP ACCESS REQUEST
   
-##if [[ $GROUP_ACCESS =~ [^[:space:]] ]]; then
   if [[ ${GROUP_ACCESS:+hasvalue} == hasvalue ]]; then
   
      echo ""
@@ -1627,7 +1576,6 @@ fi #create_module_file == true
      echo ""
    
                           # Determine which group to use
-   ##if [[ ! $GROUP =~ [^[:space:]] ]]; then
      if [[ ! ${GROUP:+hasvalue} == hasvalue ]]; then
   
                           # Use the primary group
@@ -1912,7 +1860,6 @@ if [[ $module_use_in_startup == true ]]; then
 
           has_use_in_RCFILE=no
 
-        ##[[ ! $cshrc_access  =~ [^[:space:]] ]] && print_no_startup_file CSH  $cshrc  $MODULEFILES_DIR &&  \
           [[ ! ${cshrc_access:+hasvalue}  == hasvalue ]] && print_no_startup_file CSH  $cshrc  $MODULEFILES_DIR &&  \
                                                     RCFILE=$cshrc; touch $HOME/$RCFILE; chmod 700 $HOME/$RCFILE
 
@@ -1971,7 +1918,6 @@ if [[ $module_use_in_startup == true ]]; then
 
           has_use_in_RCFILE=no
 
-        ##[[ ! $tcshrc_access  =~ [^[:space:]] ]] && print_no_startup_file TCSH  $tcshrc  $MODULEFILES_DIR && \
           [[ ! ${tcshrc_access:+hasvalue}  == hasvalue ]] && print_no_startup_file TCSH  $tcshrc  $MODULEFILES_DIR && \
                                                     RCFILE=$tcshrc; touch $HOME/$RCFILE; chmod 700 $HOME/$RCFILE
 
