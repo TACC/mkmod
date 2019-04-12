@@ -187,7 +187,7 @@ USAGE='
 
        mkmod_base_list=( NAME VER TOPDIR )
        mkmod_info_list=( WHATIS HELP_MESSAGE )
-        mkmod_use_list=( STARTUP_FILE_SUFFIX MKMOD_LOGIN_SHELL SET_STARTUP_MODULEPATH)
+        mkmod_use_list=( STARTUP_FILE_SUFFIX MKMOD_LOGIN_SHELL SET_STARTUP_MODULEPATH MODE)
    mkmod_modfiles_list=( PREFIX SITE_INSTALL MODULEFILES_DIR GROUP_ACCESS )
      mkmod_prereq_list=( FAMILY COMPILER_PREREQ MPI_PREREQ AUTO_PREREQ PREREQ )
        mkmod_file_list=( HELP_FILE WHATIS_FILE MODULEFILE_FILE )
@@ -1677,6 +1677,10 @@ if [[ $module_use_in_startup == true ]]; then
  # if SET_STARTUP_MODULEPATH is set to yes DON'T ASK ask, just do it if startup file(s) needs it
  # if SET_STARTUP_MODULEPATH is no         DON'T EVEN consider whether MODULEPATH needs to be set.
 
+ [[ "${MODE}" == user ]] &&   SET_STARTUP_MODULEPATH=yes  #set for "make user", does not require parent interactive shell
+                                                        #    ask permission (USE ASK=yes
+ [[ "${MODE}" == site ]] &&   SET_STARTUP_MODULEPATH=no   #set for "make site", NO CHECK
+
  if ([[ ! "${SET_STARTUP_MODULEPATH:+hasvalue}" == hasvalue ]] && [[ "$PARENT_CMD_TYPE"  == login_shell ]]) ||
     ([[   "${SET_STARTUP_MODULEPATH:+hasvalue}" == hasvalue ]] && [[ "${SET_STARTUP_MODULEPATH}" == yes ]]) ; then
 
@@ -1686,10 +1690,15 @@ if [[ $module_use_in_startup == true ]]; then
 
     [[ "$PARENT_CMD_TYPE" == login_shell ]] && ASK=yes   #If parent is login shell, ask permission
 
+
     # If SET_STARTUP_MODULEPATH is set, don't ask permission (assume permission, i.e. YESNO_ANSWER=yes).
 
     [[ "${SET_STARTUP_MODULEPATH:+hasvalue}" == hasvalue ]] && ASK=no && YESNO_ANSWER="yes"   
 
+    # But if user is executing "make user", we snuck in here with  SET_STARTUP_MODULEPATH=yes, 
+    # but need to ask permission from the user (for make, parent shell may not be login_login)
+    [[ "${MODE}" == user ]] && ASK=yes
+    
 
     echo $'\n'"  -> MODULE USE in STARTUP FILE:"
 
