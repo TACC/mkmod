@@ -24,7 +24,7 @@ The first two are automatically set by mkmod, but the ``REMORA_BIN`` variable
 should be specified by the name=value pair with the ``ENV1`` variable for mkmod
 as shown here::
 
-          $ export NAME=remora VER=1.8.1 TOPDIR=$WORK/APPS/remora
+          $ export NAME=remora VER=1.8.2 TOPDIR=$WORK/APPS/remora
 
           $ export ENV1="REMORA_BIN=/work/johndoe/APPS/remora/bin"
 

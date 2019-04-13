@@ -35,7 +35,7 @@ To get access to the mkmod source code clone this repository:
 
 Users can easily install mkmod in their user space.  Just get *mkmod* from the
 TACC repo with a `git` command, set `INSTALL_DIR` to an install directory and
-execute `make`. The makefile uses  the installed mkmod to create and install
+execute `make user`. The makefile uses the installed mkmod to create and install
 a `my_mkmod` modulefile.
 Setting `INSTALL_DIR` is optional, default installation is the present working directory.
 See the *INSTALL* text in the mkmod directory for the specifics of the install commands.
@@ -48,10 +48,10 @@ used below in this example of installation commands::
       $ cd    $HOME/build
 
       $ git    clone https://github.com/tacc/mkmod
-      $ cd     mkmod
+      $ cd     mkmod user
 
       $ export INSTALL_DIR=$HOME/apps
-      $ make   #uses itself to install and create a my_mkmod modulefile
+      $ make   #uses itself to install & create a my_mkmod modulefile
 
       $ module load my_mkmod   #do after logout and login,
                                #to execute startup scripts
@@ -84,15 +84,27 @@ The folowing example site installation commands intall mkmod and a mkmod modulef
       git    clone https://github.com/tacc/mkmod
       cd     mkmod
 
-      export    INSTALL_DIR=/opt/apps/mkmod
-      export MODULEFILE_DIR=/opt/apps/modulefiles
-      export   INSTALL_SITE=TACC
+      export     INSTALL_DIR=/opt/apps/mkmod
+      export MODULEFILES_DIR=/opt/apps/modulefiles
+      export    INSTALL_SITE=TACC
 
-      make   #uses itself to install and create a my_mkmod modulefile
+      make site  #uses itself to install and create a mkmod modulefile
 ```
 
 
 ## ChangeLog
+
+### mkmod 2.2:
+Features:
+    1 Makefile now requires user or site target on cmd line.          2019_04_12
+      Also sets MODE env. var. to either user or site.
+
+    2 Permission is requested to install module use command           2019_03_29
+      in startup scripts.
+
+
+Bug Fixes:
+    1 Not listed, see git log.
 
 ### mkmod 2.1:
 Features:

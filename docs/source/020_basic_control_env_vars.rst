@@ -36,7 +36,7 @@ for a Lua module system. The content of the modulefile is derived from the direc
 files within the ``$TOPDIR`` directory, and the present environment.  The command::
 
           $ module load my_remora
-          $ module load my_remora/1.8.1    # name and (optional) version used here
+          $ module load my_remora/1.8.2    # name and (optional) version used here
 
 will load the module for the example remora installation. Retain the default prefix (``my_``) 
 if a version of the package is available in the Environment Modules system (EMS), 

@@ -36,7 +36,7 @@ the ``REMORA_BIN`` environment variable to ``$TOPDIR/bin`` in the modulefile::
           $ export SITE_INSTALL=TACC
           $ export MODULEFILES_DIR=/opt/apps/modulefiles
 
-          $ export NAME=remora VER=1.8.1 TOPDIR=/opt/apps/$NAME/$VER
+          $ export NAME=remora VER=1.8.2 TOPDIR=/opt/apps/$NAME/$VER
 
           $ export ENV1="REMORA_BIN=$TOPDIR/bin"
 

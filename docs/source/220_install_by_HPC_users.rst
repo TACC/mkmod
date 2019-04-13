@@ -15,10 +15,10 @@ used below in this example of installation commands::
           $ cd       $HOME/build
 
           $ git    clone https://github.com/tacc/mkmod
-          $ cd     mkmod
+          $ cd     mkmod 
 
           $ export INSTALL_DIR=$HOME/apps
-          $ make   #uses itself to install and create a my_mkmod modulefile
+          $ make   user #uses itself to install & create a my_mkmod modulefile
 
-          $ module load my_mkmod   #do after logout and login,
-                                   #to execute startup scripts
+          $ module load my_mkmod  # do after logout and login,
+                                  # to execute startup scripts

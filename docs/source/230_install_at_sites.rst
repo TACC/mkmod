@@ -23,8 +23,8 @@ The following site installation commands install ``mkmod`` and a mkmod modulefil
           $ git    clone https://github.com/tacc/mkmod
           $ cd     mkmod
 
-          $ export    INSTALL_DIR=/opt/apps/mkmod
-          $ export MODULEFILE_DIR=/opt/apps/modulefiles
-          $ export   INSTALL_SITE=TACC
+          $ export     INSTALL_DIR=/opt/apps/mkmod
+          $ export MODULEFILES_DIR=/opt/apps/modulefiles
+          $ export    INSTALL_SITE=TACC
 
-          $ make   #uses itself to install and create a my_mkmod modulefile
+          $ make   site #uses itself to install and create a mkmod modulefile

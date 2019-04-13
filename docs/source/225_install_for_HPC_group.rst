@@ -23,7 +23,7 @@ and *mkmod* will be the modulefile name for mkmod
  
           $ git clone https://github.com/tacc/mkmod
           $ cd mkmod
-          $ make
+          $ make user
  
           $ # ... If installing  packages at a later date, DON'T FORGET
           $ # ... to set MODULEFILES_DIR and GROUP_ACCESS; if you forget
