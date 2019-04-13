@@ -23,8 +23,8 @@ m2 = "  -->                        --Checks to see if startup file needs to set 
 m3 = "  -->                        --Will ask permission if needed.\n"
 m4 = "  --> \"make site\" for site install.\n"
 m5 = "  -->                        --NO startup file check.\n"
-m6 = "  -->                        --ALSO set MODULEFILES_DIR to modulefiles directory.\n"
-m7 = "  -->                        --     mkmod/$(VER) will be inserted in \$MODULEFILES_DIR.\n"
+m6 = "  -->                        --ALSO sets MODULEFILES_DIR to modulefiles directory.\n"
+m7 = "  -->                        --     mkmod/$(VER) will be inserted in MODULEFILES_DIR.\n"
 
 instruct:
 	@echo -e $(m0)$(m1)$(m2)$(m3)$(m4)$(m5)$(m6)$(m7)

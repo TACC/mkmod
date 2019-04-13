@@ -1,5 +1,6 @@
-(A) Document  package_HOME or packageHOME variables +mkmod due:2019-03-31
-(A) Document support for only one personal modulefiles directory +mkmod due:2019-03-31
+(A) Report when and what values are found in ENVi due:2019-04-31
+(A) Document  package_HOME or packageHOME variables +mkmod due:2019-04-31
+(A) Document support for only one personal modulefiles directory +mkmod due:2019-04-31
 (B) have .mkmodrc for alternate defaults: MODULEFILES_DIR, PREFIX, etc. +mkmod  due:2019-07-01
 (B) After 1st install, USE_IN_SHELLRC=none, unless new MODULEFILES_DIR or reinstall +mkmod due:2019-07-01
 (B) Support multiple  personal modulefiles directories +mkmod due:2019-07-01

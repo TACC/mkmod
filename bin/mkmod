@@ -587,7 +587,7 @@ USAGE='
   fi
 
   echo "  -> Prefix for module name is \"$PREFIX_sml\". (Set PREFIX=\"\" for none.)"
-  echo "  -> Prefix for informational env. var. names is \"$PREFIX_cap\"."
+  echo "  -> Prefix for Convenience env. var. names is \"$PREFIX_cap\"."
 
   
   if [[ ! ${MODULEFILES_DIR:+hasvalue}  == hasvalue ]]; then
