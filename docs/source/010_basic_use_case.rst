@@ -8,7 +8,7 @@ directory of the application you installed, and execute mkmod.  Here is an examp
           $ #git clone https://github.com/tacc/remora; cd remora; install.sh >
    
           $ export NAME=remora  VER=1.8.2 TOPDIR=$HOME/apps/remora
-          $ mkmod user
+          $ mkmod
 
 This creates the modulefile ``$HOME/modulefiles/my_remora/1.8.2`` (or ``1.8.2.lua``),
 and makes sure that your startup file executes ``module use $HOME/modulefiles``
