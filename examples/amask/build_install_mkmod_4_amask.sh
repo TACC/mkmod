@@ -18,10 +18,11 @@ echo "  -> Build and install amask"
    make install
 
 echo "  -> Creating amask modulefile"
-   cd $HOME/APP
+   cd $INSTALL_DIR
 
    unset PREFIX
-   ml mkmod
+   [[   -d $HOME/modulefiles/my_mkmod ]] && ml my_mkmod #try your own 1st
+   [[ ! -d $HOME/modulefiles/my_mkmod ]] && ml    mkmod #otherwise use system mkmod
    export VER=2.3 NAME=amask TOPDIR=`pwd`
    mkmod
 
