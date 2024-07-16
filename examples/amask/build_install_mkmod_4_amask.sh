@@ -23,7 +23,7 @@ echo "  -> Creating amask modulefile"
    unset PREFIX
    [[   -d $HOME/modulefiles/my_mkmod ]] && ml my_mkmod #try your own 1st
    [[ ! -d $HOME/modulefiles/my_mkmod ]] && ml    mkmod #otherwise use system mkmod
-   export VER=2.3 NAME=amask TOPDIR=`pwd`
+   export VER=1.1 NAME=amask TOPDIR=`pwd`
    mkmod
 
 echo " -> You are set to load amask module and use amask!"
