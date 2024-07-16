@@ -872,6 +872,7 @@
         LOGIN_SHELL=$MKMOD_LOGIN_SHELL
         login_shell_by="MKMOD_LOGIN_SHELL Env Var"
      else
+        # Try finger 
         finger -m $USER 2>&1 |grep Shell:  2>&1|sed  's/.*Shell:\s*\([a-z,\/]*\)/\1/' 2>&1  > /dev/null
         if [[ ! ${PIPESTATUS[@]} =~ 1 ]]; then
            LOGIN_SHELL=`finger -m $USER |grep Shell: |sed  's/.*Shell:\s*\([a-z,\/]*\)/\1/'`
@@ -882,6 +883,14 @@
               login_shell_by="parent being a login shell"
            fi
         fi
+
+        # Try LDAP
+        ldapsearch -LLL -x uid=$USER loginShell >& /dev/null
+        if [[ $? == 0 ]] && [[ $LOGIN_SHELL == unknown ]] ; then  # Site/site is probably be using LDAP
+           LOGIN_SHELL=$(ldapsearch -LLL -x uid=$USER loginShell | grep loginShell: |sed 's/loginShell: *//' )
+           login_shell_by="ldap"
+        fi
+
      fi
    
      #           Take off path (Next section only uses base name, bash, tcsh, etc.)  

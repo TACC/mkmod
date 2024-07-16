@@ -4,7 +4,7 @@ module_use_in_startup=true  #set to false to NOT execute module use insertion (i
 
 # MUST register all environment variables used by mkmod (Search for this line in VARS section)
 
-MKMOD_VERSION=2.2  # VERSION SOURCE makefile extracts version from this line
+MKMOD_VERSION=2.3  # VERSION SOURCE makefile extracts version from this line
                    # DO NOT MODIFY format "MKMOD_version=<ver>  # VERSION SOURCE"
 
 if [[ ${BASH_SOURCE[0]} =~ [^[:space:]] ]]; then
@@ -168,7 +168,7 @@ USAGE='
          NAME, VER and TOPDIR must be defined and exported.
 
          optional information-only arguments:
-         -h this help
+         -h help: details about setting environment variable for features
          -v mkmod version number
          -r displays all set variables used by mkmod as "unset <var_list>"; 
             copy, paste and execute to start over for new package
@@ -573,6 +573,11 @@ USAGE='
      PREFIX_sml=my_
      PREFIX_cap=MY_
   else                    #USER-DEFINED PREFIX (may include "" -- which means NO prefix)
+     if [[ $PREFIX =~ "/" ]]; then
+       echo -e "\n -> ERROR ***  PREFIX cannot have a \"/\" character in it."
+       echo -e   "               PREFIX= ${PREFIX}  -- Please reset without a \"/\"."
+       exit 1
+     fi
      PREFIX_cap=$( echo $PREFIX | tr '[:lower:]' '[:upper:]' )
      PREFIX_sml=$( echo $PREFIX | tr '[:upper:]' '[:lower:]' )
   fi
