@@ -891,6 +891,14 @@
            login_shell_by="ldap"
         fi
 
+        # Try getent
+        getent passwd $USER >& /dev/null
+        if [[ $? == 0 ]] && [[ $LOGIN_SHELL == unknown ]] ; then  # If LDAP doesn't work, try getent
+           entry=$(getent passwd $USER)
+           LOGIN_SHELL=${entry##*:}
+           login_shell_by="getent"
+        fi
+
      fi
    
      #           Take off path (Next section only uses base name, bash, tcsh, etc.)  
